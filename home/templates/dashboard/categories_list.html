@@ -1,0 +1,430 @@
+{% extends 'dashboard/base.html' %}
+
+{% block title %}Categories Management - Admin Dashboard{% endblock %}
+{% block page_title %}Categories Management{% endblock %}
+{% block page_description %}Manage book categories, organize your catalog, and track category performance.{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Category Statistics -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+            <div class="flex items-center">
+                <div class="flex-1">
+                    <p class="text-sm text-gray-600">Total Categories</p>
+                    <p class="text-xl font-bold text-blue-600">{{ categories.count }}</p>
+                </div>
+                <i class="fas fa-tags text-blue-500 text-xl"></i>
+            </div>
+        </div>
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+            <div class="flex items-center">
+                <div class="flex-1">
+                    <p class="text-sm text-gray-600">Active Categories</p>
+                    <p class="text-xl font-bold text-green-600">
+                        {% with active_count=categories|length %}{{ active_count }}{% endwith %}
+                    </p>
+                </div>
+                <i class="fas fa-check-circle text-green-500 text-xl"></i>
+            </div>
+        </div>
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+            <div class="flex items-center">
+                <div class="flex-1">
+                    <p class="text-sm text-gray-600">Most Popular</p>
+                    <p class="text-xl font-bold text-purple-600">
+                        {% if categories %}{{ categories.0.book_count }}{% else %}0{% endif %} books
+                    </p>
+                </div>
+                <i class="fas fa-star text-purple-500 text-xl"></i>
+            </div>
+        </div>
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+            <div class="flex items-center">
+                <div class="flex-1">
+                    <p class="text-sm text-gray-600">Empty Categories</p>
+                    <p class="text-xl font-bold text-yellow-600">
+                        {{ categories|length|add:"-1" }}
+                    </p>
+                </div>
+                <i class="fas fa-exclamation-triangle text-yellow-500 text-xl"></i>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Category Button -->
+    <div class="flex justify-between items-center">
+        <div></div>
+        <button onclick="openAddCategoryModal()" 
+                class="bg-gray-900 text-white px-6 py-2 rounded-lg hover:bg-gray-800 transition-colors shadow-sm">
+            <i class="fas fa-plus mr-2"></i>
+            Add New Category
+        </button>
+    </div>
+
+    <!-- Categories Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        {% for category in categories %}
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
+            <div class="p-6">
+                <!-- Category Header -->
+                <div class="flex items-start justify-between mb-4">
+                    <div class="flex-1">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-1">{{ category.name }}</h3>
+                        <p class="text-sm text-gray-500">{{ category.book_count }} book{{ category.book_count|pluralize }}</p>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        {% if category.is_active %}
+                        <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                            <span class="w-2 h-2 mr-1 rounded-full bg-green-400"></span>
+                            Active
+                        </span>
+                        {% else %}
+                        <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                            <span class="w-2 h-2 mr-1 rounded-full bg-red-400"></span>
+                            Inactive
+                        </span>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Category Description -->
+                {% if category.description %}
+                <div class="mb-4">
+                    <p class="text-sm text-gray-600 line-clamp-3">{{ category.description }}</p>
+                </div>
+                {% endif %}
+
+                <!-- Category Stats -->
+                <div class="space-y-2 mb-4">
+                    {% if category.book_count > 0 %}
+                    <div class="flex justify-between items-center text-sm">
+                        <span class="text-gray-600">Books:</span>
+                        <span class="font-medium text-gray-900">{{ category.book_count }}</span>
+                    </div>
+                    {% endif %}
+                    <div class="flex justify-between items-center text-sm">
+                        <span class="text-gray-600">Created:</span>
+                        <span class="text-gray-500">{{ category.created_at|date:"M d, Y"|default:"N/A" }}</span>
+                    </div>
+                </div>
+
+                <!-- Actions -->
+                <div class="flex items-center justify-between pt-4 border-t border-gray-100">
+                    <div class="flex items-center space-x-3">
+                        <button onclick="editCategory({{ category.id }}, '{{ category.name|escapejs }}', '{{ category.description|escapejs }}', {{ category.is_active|yesno:"true,false" }})"
+                                class="text-blue-600 hover:text-blue-800 transition-colors" 
+                                title="Edit Category">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button onclick="toggleCategoryStatus({{ category.id }}, {{ category.is_active|yesno:'true,false' }})"
+                                class="{% if category.is_active %}text-yellow-600 hover:text-yellow-800{% else %}text-green-600 hover:text-green-800{% endif %} transition-colors" 
+                                title="{% if category.is_active %}Deactivate{% else %}Activate{% endif %} Category">
+                            <i class="fas {% if category.is_active %}fa-eye-slash{% else %}fa-eye{% endif %}"></i>
+                        </button>
+                        {% if category.book_count == 0 %}
+                        <button onclick="deleteCategory({{ category.id }}, '{{ category.name|escapejs }}')"
+                                class="text-red-600 hover:text-red-800 transition-colors" 
+                                title="Delete Category">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                        {% else %}
+                        <button class="text-gray-400 cursor-not-allowed" 
+                                title="Cannot delete category with books"
+                                disabled>
+                            <i class="fas fa-trash"></i>
+                        </button>
+                        {% endif %}
+                    </div>
+                    {% if category.book_count > 0 %}
+                    <a href="{% url 'books' %}?category={{ category.id }}" 
+                       class="text-sm text-blue-600 hover:text-blue-800 transition-colors">
+                        View Books <i class="fas fa-arrow-right ml-1"></i>
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-span-full">
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center">
+                <i class="fas fa-tags text-4xl text-gray-400 mb-4"></i>
+                <h3 class="text-lg font-medium text-gray-900 mb-2">No categories found</h3>
+                <p class="text-gray-500 mb-6">Get started by creating your first book category.</p>
+                <button onclick="openAddCategoryModal()" 
+                        class="bg-gray-900 text-white px-6 py-2 rounded-lg hover:bg-gray-800 transition-colors shadow-sm">
+                    <i class="fas fa-plus mr-2"></i>
+                    Add First Category
+                </button>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- Add/Edit Category Modal -->
+<div id="categoryModal" class="fixed inset-0 bg-gray-900 bg-opacity-50 hidden items-center justify-center z-50">
+    <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-md mx-4 transform transition-all">
+        <div class="flex justify-between items-center mb-4">
+            <h3 id="modalTitle" class="text-xl font-semibold text-gray-900">Add New Category</h3>
+            <button onclick="closeCategoryModal()" class="text-gray-400 hover:text-gray-600">
+                <i class="fas fa-times text-xl"></i>
+            </button>
+        </div>
+        
+        <form id="categoryForm" onsubmit="handleFormSubmit(event)">
+            {% csrf_token %}
+            <input type="hidden" id="categoryId" name="category_id">
+            <input type="hidden" id="action" name="action" value="add">
+            
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-2">
+                    Category Name <span class="text-red-500">*</span>
+                </label>
+                <input type="text" 
+                       id="categoryName" 
+                       name="name" 
+                       required
+                       class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-transparent"
+                       placeholder="e.g., Fiction, Non-Fiction, Science...">
+            </div>
+            
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-2">
+                    Description <span class="text-gray-500 text-xs">(Optional)</span>
+                </label>
+                <textarea id="categoryDescription" 
+                          name="description" 
+                          rows="3"
+                          class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-transparent resize-none"
+                          placeholder="Brief description of this category..."></textarea>
+            </div>
+            
+            <div class="mb-6">
+                <label class="flex items-center cursor-pointer">
+                    <input type="checkbox" 
+                           id="categoryActive" 
+                           name="is_active" 
+                           checked
+                           class="w-4 h-4 rounded border-gray-300 text-gray-900 focus:ring-gray-500">
+                    <span class="ml-2 text-sm text-gray-700">
+                        Active <span class="text-gray-500">(visible to customers)</span>
+                    </span>
+                </label>
+            </div>
+            
+            <div class="flex space-x-3">
+                <button type="submit" 
+                        id="submitBtn"
+                        class="flex-1 bg-gray-900 text-white py-2.5 rounded-lg hover:bg-gray-800 transition-colors font-medium shadow-sm">
+                    <i class="fas fa-check mr-2"></i>
+                    <span id="submitText">Add Category</span>
+                </button>
+                <button type="button" 
+                        onclick="closeCategoryModal()" 
+                        class="flex-1 bg-gray-100 text-gray-700 py-2.5 rounded-lg hover:bg-gray-200 transition-colors font-medium">
+                    <i class="fas fa-times mr-2"></i>
+                    Cancel
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Toast Notification -->
+<div id="toast" class="fixed top-4 right-4 bg-white border-l-4 rounded-lg shadow-lg p-4 hidden transform transition-all z-50 max-w-md">
+    <div class="flex items-start">
+        <div class="flex-shrink-0">
+            <i id="toastIcon" class="text-xl"></i>
+        </div>
+        <div class="ml-3 flex-1">
+            <p id="toastMessage" class="text-sm font-medium text-gray-900"></p>
+        </div>
+        <button onclick="hideToast()" class="ml-4 text-gray-400 hover:text-gray-600">
+            <i class="fas fa-times"></i>
+        </button>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let isEditing = false;
+
+function openAddCategoryModal() {
+    isEditing = false;
+    document.getElementById('modalTitle').textContent = 'Add New Category';
+    document.getElementById('submitText').textContent = 'Add Category';
+    document.getElementById('action').value = 'add';
+    document.getElementById('categoryId').value = '';
+    document.getElementById('categoryName').value = '';
+    document.getElementById('categoryDescription').value = '';
+    document.getElementById('categoryActive').checked = true;
+    
+    document.getElementById('categoryModal').classList.remove('hidden');
+    document.getElementById('categoryModal').classList.add('flex');
+    setTimeout(() => document.getElementById('categoryName').focus(), 100);
+}
+
+function editCategory(id, name, description, isActive) {
+    isEditing = true;
+    document.getElementById('modalTitle').textContent = 'Edit Category';
+    document.getElementById('submitText').textContent = 'Update Category';
+    document.getElementById('action').value = 'edit';
+    document.getElementById('categoryId').value = id;
+    document.getElementById('categoryName').value = name;
+    document.getElementById('categoryDescription').value = description;
+    document.getElementById('categoryActive').checked = isActive;
+    
+    document.getElementById('categoryModal').classList.remove('hidden');
+    document.getElementById('categoryModal').classList.add('flex');
+    setTimeout(() => document.getElementById('categoryName').focus(), 100);
+}
+
+function closeCategoryModal() {
+    document.getElementById('categoryModal').classList.add('hidden');
+    document.getElementById('categoryModal').classList.remove('flex');
+}
+
+function showToast(message, type = 'success') {
+    const toast = document.getElementById('toast');
+    const toastIcon = document.getElementById('toastIcon');
+    const toastMessage = document.getElementById('toastMessage');
+    
+    // Set icon and color based on type
+    if (type === 'success') {
+        toast.className = 'fixed top-4 right-4 bg-white border-l-4 border-green-500 rounded-lg shadow-lg p-4 transform transition-all z-50 max-w-md';
+        toastIcon.className = 'fas fa-check-circle text-green-500 text-xl';
+    } else if (type === 'error') {
+        toast.className = 'fixed top-4 right-4 bg-white border-l-4 border-red-500 rounded-lg shadow-lg p-4 transform transition-all z-50 max-w-md';
+        toastIcon.className = 'fas fa-exclamation-circle text-red-500 text-xl';
+    }
+    
+    toastMessage.textContent = message;
+    toast.classList.remove('hidden');
+    
+    // Auto-hide after 3 seconds
+    setTimeout(() => hideToast(), 3000);
+}
+
+function hideToast() {
+    document.getElementById('toast').classList.add('hidden');
+}
+
+function handleFormSubmit(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(e.target);
+    const submitBtn = document.getElementById('submitBtn');
+    const originalText = document.getElementById('submitText').textContent;
+    
+    // Disable button and show loading
+    submitBtn.disabled = true;
+    document.getElementById('submitText').textContent = 'Saving...';
+    
+    fetch('{% url "categories" %}', {
+        method: 'POST',
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-CSRFToken': formData.get('csrfmiddlewaretoken'),
+        },
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success') {
+            showToast(data.message, 'success');
+            closeCategoryModal();
+            setTimeout(() => location.reload(), 500);
+        } else {
+            showToast(data.message, 'error');
+            submitBtn.disabled = false;
+            document.getElementById('submitText').textContent = originalText;
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showToast('An error occurred while saving the category.', 'error');
+        submitBtn.disabled = false;
+        document.getElementById('submitText').textContent = originalText;
+    });
+}
+
+function toggleCategoryStatus(categoryId, currentStatus) {
+    const action = currentStatus ? 'deactivate' : 'activate';
+    const message = `Are you sure you want to ${action} this category?`;
+    
+    if (confirm(message)) {
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+        
+        fetch(`/dashboard/categories/${categoryId}/toggle-status/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': csrfToken,
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                showToast(data.message, 'success');
+                setTimeout(() => location.reload(), 500);
+            } else {
+                showToast('Error: ' + data.message, 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showToast('An error occurred while updating the category status.', 'error');
+        });
+    }
+}
+
+function deleteCategory(categoryId, categoryName) {
+    const message = `Are you sure you want to delete "${categoryName}"?\n\nThis action cannot be undone.`;
+    
+    if (confirm(message)) {
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+        
+        fetch(`/dashboard/categories/${categoryId}/delete/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': csrfToken,
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                showToast(data.message, 'success');
+                setTimeout(() => location.reload(), 500);
+            } else {
+                showToast('Error: ' + data.message, 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showToast('An error occurred while deleting the category.', 'error');
+        });
+    }
+}
+
+// Close modal when clicking outside
+document.getElementById('categoryModal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        closeCategoryModal();
+    }
+});
+
+// Close modal with Escape key
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        const modal = document.getElementById('categoryModal');
+        if (!modal.classList.contains('hidden')) {
+            closeCategoryModal();
+        }
+    }
+});
+</script>
+{% endblock %}

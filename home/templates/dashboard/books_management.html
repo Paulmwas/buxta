@@ -1,0 +1,1063 @@
+{% extends 'dashboard/base.html' %}
+{% block content %} 
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Books Management - Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    animation: {
+                        'fade-in': 'fadeIn 0.3s ease-in-out',
+                        'slide-up': 'slideUp 0.3s ease-out'
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        @keyframes slideUp {
+            from { transform: translateY(20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        .modal-backdrop {
+            backdrop-filter: blur(4px);
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- Header -->
+    <div class="bg-white shadow-sm border-b">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center py-4">
+                <div>
+                    <h1 class="text-2xl font-bold text-gray-900">Books Management</h1>
+                    <p class="text-sm text-gray-600">Manage your book inventory</p>
+                </div>
+                <button onclick="openAddModal()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors">
+                    <i class="fas fa-plus"></i>
+                    <span>Add New Book</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+            <div class="bg-white rounded-lg shadow p-6">
+                <div class="flex items-center">
+                    <div class="p-2 bg-blue-100 rounded-lg">
+                        <i class="fas fa-book text-blue-600"></i>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm text-gray-600">Total Books</p>
+                        <p class="text-2xl font-bold text-gray-900" id="totalBooks">{{ books.count }}</p>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-white rounded-lg shadow p-6">
+                <div class="flex items-center">
+                    <div class="p-2 bg-green-100 rounded-lg">
+                        <i class="fas fa-check-circle text-green-600"></i>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm text-gray-600">Active Books</p>
+                        <p class="text-2xl font-bold text-gray-900">{{ active_books_count }}</p>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-white rounded-lg shadow p-6">
+                <div class="flex items-center">
+                    <div class="p-2 bg-yellow-100 rounded-lg">
+                        <i class="fas fa-exclamation-triangle text-yellow-600"></i>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm text-gray-600">Low Stock</p>
+                        <p class="text-2xl font-bold text-gray-900">{{ low_stock_count }}</p>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-white rounded-lg shadow p-6">
+                <div class="flex items-center">
+                    <div class="p-2 bg-red-100 rounded-lg">
+                        <i class="fas fa-times-circle text-red-600"></i>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm text-gray-600">Out of Stock</p>
+                        <p class="text-2xl font-bold text-gray-900">{{ out_of_stock_count }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Search and Filters -->
+        <div class="bg-white rounded-lg shadow mb-6">
+            <div class="p-6">
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div>
+                        <input type="text" id="searchInput" placeholder="Search books..." 
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    </div>
+                    <div>
+                        <select id="categoryFilter" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                            <option value="">All Categories</option>
+                            {% for category in categories %}
+                            <option value="{{ category.id }}">{{ category.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div>
+                        <select id="statusFilter" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                            <option value="">All Status</option>
+                            <option value="active">Active</option>
+                            <option value="inactive">Inactive</option>
+                            <option value="low_stock">Low Stock</option>
+                            <option value="out_of_stock">Out of Stock</option>
+                        </select>
+                    </div>
+                    <div>
+                        <button onclick="clearFilters()" class="w-full px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+                            Clear Filters
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Books Table -->
+        <div class="bg-white rounded-lg shadow overflow-hidden">
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Book</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Authors</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Price</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Stock</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200" id="booksTableBody">
+                        {% for book in books %}
+                        <tr class="hover:bg-gray-50" data-book-id="{{ book.id }}">
+                            <td class="px-6 py-4">
+                                <div class="flex items-center">
+                                    <div class="h-16 w-12 flex-shrink-0">
+                                        {% if book.images.first %}
+                                        <img class="h-16 w-12 object-cover rounded" src="{{ book.images.first.image.url }}" alt="{{ book.title }}">
+                                        {% else %}
+                                        <div class="h-16 w-12 bg-gray-200 rounded flex items-center justify-center">
+                                            <i class="fas fa-book text-gray-400"></i>
+                                        </div>
+                                        {% endif %}
+                                    </div>
+                                    <div class="ml-4">
+                                        <div class="text-sm font-medium text-gray-900">{{ book.title }}</div>
+                                        <div class="text-sm text-gray-500">{{ book.isbn_13|default:"No ISBN" }}</div>
+                                        <div class="flex space-x-1 mt-1">
+                                            {% if book.is_featured %}
+                                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800">Featured</span>
+                                            {% endif %}
+                                            {% if book.is_bestseller %}
+                                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800">Bestseller</span>
+                                            {% endif %}
+                                            {% if book.is_new_arrival %}
+                                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">New</span>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="px-6 py-4">
+                                <div class="text-sm text-gray-900">
+                                    {% for author in book.authors.all %}
+                                        {{ author.full_name }}{% if not forloop.last %}, {% endif %}
+                                    {% endfor %}
+                                </div>
+                            </td>
+                            <td class="px-6 py-4">
+                                <div class="text-sm font-medium text-gray-900">KSh {{ book.price }}</div>
+                                {% if book.compare_at_price and book.compare_at_price > book.price %}
+                                <div class="text-xs text-gray-500 line-through">KSh {{ book.compare_at_price }}</div>
+                                {% endif %}
+                            </td>
+                            <td class="px-6 py-4">
+                                <div class="text-sm text-gray-900">{{ book.stock_quantity }}</div>
+                                {% if book.is_low_stock and book.stock_quantity > 0 %}
+                                <div class="text-xs text-yellow-600">Low stock</div>
+                                {% elif book.stock_quantity == 0 %}
+                                <div class="text-xs text-red-600">Out of stock</div>
+                                {% endif %}
+                            </td>
+                            <td class="px-6 py-4">
+                                <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium
+                                    {% if book.is_active %}bg-green-100 text-green-800{% else %}bg-red-100 text-red-800{% endif %}">
+                                    {% if book.is_active %}Active{% else %}Inactive{% endif %}
+                                </span>
+                            </td>
+                            <td class="px-6 py-4">
+                                <div class="flex items-center space-x-3" data-book-id="{{ book.id }}" data-book-title="{{ book.title|escapejs }}" data-book-is-active="{{ book.is_active|yesno:'true,false' }}">
+                                    <button data-action="view" class="text-blue-600 hover:text-blue-800" title="View">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                    <button data-action="edit" class="text-indigo-600 hover:text-indigo-800" title="Edit">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button data-action="images" class="text-purple-600 hover:text-purple-800" title="Images">
+                                        <i class="fas fa-images"></i>
+                                    </button>
+                                    <button data-action="toggle-status" 
+                                            class="{% if book.is_active %}text-yellow-600 hover:text-yellow-800{% else %}text-green-600 hover:text-green-800{% endif %}" 
+                                            title="{% if book.is_active %}Deactivate{% else %}Activate{% endif %}">
+                                        <i class="fas fa-{% if book.is_active %}pause{% else %}play{% endif %}"></i>
+                                    </button>
+                                    <button data-action="delete" class="text-red-600 hover:text-red-800" title="Delete"></button>
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="6" class="px-6 py-8 text-center text-gray-500">
+                                <i class="fas fa-book text-4xl text-gray-300 mb-2"></i>
+                                <p>No books found.</p>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add/Edit Book Modal -->
+    <div id="bookModal" class="fixed inset-0 bg-black bg-opacity-50 modal-backdrop hidden z-50">
+        <div class="flex items-center justify-center min-h-screen p-4">
+            <div class="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-screen overflow-y-auto animate-slide-up">
+                <div class="flex justify-between items-center p-6 border-b">
+                    <h3 id="modalTitle" class="text-lg font-semibold text-gray-900">Add New Book</h3>
+                    <button onclick="closeBookModal()" class="text-gray-400 hover:text-gray-600">
+                        <i class="fas fa-times text-xl"></i>
+                    </button>
+                </div>
+                
+                <form id="bookForm" class="p-6 space-y-6">
+                    <input type="hidden" id="bookId" name="book_id">
+                    <input type="hidden" id="formAction" name="action" value="add">
+                    
+                    <!-- Basic Information -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Title *</label>
+                            <input type="text" id="title" name="title" required 
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Subtitle</label>
+                            <input type="text" id="subtitle" name="subtitle" 
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">ISBN-10</label>
+                            <input type="text" id="isbn_10" name="isbn_10" 
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">ISBN-13</label>
+                            <input type="text" id="isbn_13" name="isbn_13" 
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        </div>
+                    </div>
+
+                    <!-- Description -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Description *</label>
+                        <textarea id="description" name="description" rows="4" required 
+                                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"></textarea>
+                    </div>
+
+                    <!-- Authors and Categories -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Authors *</label>
+                            <select id="authors" name="authors" multiple required 
+                                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                {% for author in authors %}
+                                <option value="{{ author.id }}">{{ author.full_name }}</option>
+                                {% endfor %}
+                            </select>
+                            <p class="text-xs text-gray-500 mt-1">Hold Ctrl/Cmd to select multiple</p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Categories *</label>
+                            <select id="categories" name="categories" multiple required 
+                                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                {% for category in categories %}
+                                <option value="{{ category.id }}">{{ category.name }}</option>
+                                {% endfor %}
+                            </select>
+                            <p class="text-xs text-gray-500 mt-1">Hold Ctrl/Cmd to select multiple</p>
+                        </div>
+                    </div>
+
+                    <!-- Publisher and Details -->
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Publisher</label>
+                            <select id="publisher" name="publisher" 
+                                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                <option value="">Select Publisher</option>
+                                {% for publisher in publishers %}
+                                <option value="{{ publisher.id }}">{{ publisher.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Format</label>
+                            <select id="format" name="format" 
+                                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                <option value="paperback">Paperback</option>
+                                <option value="hardcover">Hardcover</option>
+                                <option value="ebook">E-book</option>
+                                <option value="audiobook">Audiobook</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Condition</label>
+                            <select id="condition" name="condition" 
+                                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                <option value="new">New</option>
+                                <option value="like_new">Like New</option>
+                                <option value="good">Good</option>
+                                <option value="acceptable">Acceptable</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Physical Details -->
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Pages</label>
+                            <input type="number" id="pages" name="pages" min="1" 
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Language</label>
+                            <input type="text" id="language" name="language" value="English" 
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Publication Date</label>
+                            <input type="date" id="publication_date" name="publication_date" 
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        </div>
+                    </div>
+
+                    <!-- Pricing and Stock -->
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Price (KSh) *</label>
+                            <input type="number" id="price" name="price" step="0.01" min="0" required 
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Compare at Price</label>
+                            <input type="number" id="compare_at_price" name="compare_at_price" step="0.01" min="0" 
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Stock Quantity</label>
+                            <input type="number" id="stock_quantity" name="stock_quantity" min="0" value="0" 
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Low Stock Threshold</label>
+                            <input type="number" id="low_stock_threshold" name="low_stock_threshold" min="0" value="5" 
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        </div>
+                    </div>
+
+                    <!-- Cover Image -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Cover Image</label>
+                        <input type="file" id="cover_image" name="cover_image" accept="image/*" 
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        <div id="currentImage" class="mt-2 hidden">
+                            <p class="text-sm text-gray-600">Current image:</p>
+                            <img id="currentImagePreview" class="h-20 w-16 object-cover rounded mt-1" alt="Current book cover">
+                        </div>
+                    </div>
+
+                    <!-- Status Checkboxes -->
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div class="flex items-center">
+                            <input type="checkbox" id="is_active" name="is_active" checked 
+                                   class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                            <label for="is_active" class="ml-2 block text-sm text-gray-700">Active</label>
+                        </div>
+                        <div class="flex items-center">
+                            <input type="checkbox" id="is_featured" name="is_featured" 
+                                   class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                            <label for="is_featured" class="ml-2 block text-sm text-gray-700">Featured</label>
+                        </div>
+                        <div class="flex items-center">
+                            <input type="checkbox" id="is_bestseller" name="is_bestseller" 
+                                   class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                            <label for="is_bestseller" class="ml-2 block text-sm text-gray-700">Bestseller</label>
+                        </div>
+                        <div class="flex items-center">
+                            <input type="checkbox" id="is_new_arrival" name="is_new_arrival" 
+                                   class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                            <label for="is_new_arrival" class="ml-2 block text-sm text-gray-700">New Arrival</label>
+                        </div>
+                    </div>
+
+                    <!-- Form Actions -->
+                    <div class="flex justify-end space-x-4 pt-6 border-t">
+                        <button type="button" onclick="closeBookModal()" 
+                                class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors">
+                            Cancel
+                        </button>
+                        <button type="submit" id="submitBtn" 
+                                class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                            Add Book
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Image Management Modal -->
+    <div id="imageModal" class="fixed inset-0 bg-black bg-opacity-50 modal-backdrop hidden z-50">
+        <div class="flex items-center justify-center min-h-screen p-4">
+            <div class="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-screen overflow-y-auto animate-slide-up">
+                <div class="flex justify-between items-center p-6 border-b">
+                    <h3 class="text-lg font-semibold text-gray-900">Manage Book Images</h3>
+                    <button onclick="closeImageModal()" class="text-gray-400 hover:text-gray-600">
+                        <i class="fas fa-times text-xl"></i>
+                    </button>
+                </div>
+                
+                <div class="p-6">
+                    <!-- Upload Section -->
+                    <div class="mb-6">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Upload Additional Images</label>
+                        <input type="file" id="additionalImages" multiple accept="image/*" 
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        <button onclick="uploadImages()" class="mt-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                            Upload Images
+                        </button>
+                    </div>
+
+                    <!-- Images Grid -->
+                    <div id="imagesGrid" class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <!-- Images will be loaded here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- View Book Modal -->
+    <div id="viewModal" class="fixed inset-0 bg-black bg-opacity-50 modal-backdrop hidden z-50">
+        <div class="flex items-center justify-center min-h-screen p-4">
+            <div class="bg-white rounded-lg shadow-xl max-w-3xl w-full max-h-screen overflow-y-auto animate-slide-up">
+                <div class="flex justify-between items-center p-6 border-b">
+                    <h3 class="text-lg font-semibold text-gray-900">Book Details</h3>
+                    <button onclick="closeViewModal()" class="text-gray-400 hover:text-gray-600">
+                        <i class="fas fa-times text-xl"></i>
+                    </button>
+                </div>
+                
+                <div id="bookDetails" class="p-6">
+                    <!-- Book details will be loaded here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading Spinner -->
+    <div id="loadingSpinner" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center">
+        <div class="bg-white rounded-lg p-6">
+            <div class="flex items-center space-x-3">
+                <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                <span class="text-gray-700">Loading...</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification Toast -->
+    <div id="notification" class="fixed top-4 right-4 z-50 hidden">
+        <div class="bg-white border rounded-lg shadow-lg p-4 max-w-sm">
+            <div class="flex items-center">
+                <div id="notificationIcon" class="flex-shrink-0"></div>
+                <div class="ml-3">
+                    <p id="notificationMessage" class="text-sm font-medium text-gray-900"></p>
+                </div>
+                <div class="ml-auto pl-3">
+                    <button onclick="hideNotification()" class="text-gray-400 hover:text-gray-600">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global variables
+        let currentBookId = null;
+        let currentImages = [];
+
+        // CSRF Token
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value || 
+                         document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || 
+                         '{{ csrf_token }}';
+
+        // Utility Functions
+        function showLoading() {
+            document.getElementById('loadingSpinner').classList.remove('hidden');
+        }
+
+        function hideLoading() {
+            document.getElementById('loadingSpinner').classList.add('hidden');
+        }
+
+        function showNotification(message, type = 'success') {
+            const notification = document.getElementById('notification');
+            const icon = document.getElementById('notificationIcon');
+            const messageEl = document.getElementById('notificationMessage');
+
+            messageEl.textContent = message;
+            
+            if (type === 'success') {
+                icon.innerHTML = '<i class="fas fa-check-circle text-green-500"></i>';
+            } else if (type === 'error') {
+                icon.innerHTML = '<i class="fas fa-exclamation-circle text-red-500"></i>';
+            } else if (type === 'warning') {
+                icon.innerHTML = '<i class="fas fa-exclamation-triangle text-yellow-500"></i>';
+            }
+
+            notification.classList.remove('hidden');
+            notification.classList.add('animate-fade-in');
+
+            setTimeout(() => {
+                hideNotification();
+            }, 5000);
+        }
+
+        function hideNotification() {
+            const notification = document.getElementById('notification');
+            notification.classList.add('hidden');
+            notification.classList.remove('animate-fade-in');
+        }
+
+        // Modal Functions
+        function openAddModal() {
+            document.getElementById('modalTitle').textContent = 'Add New Book';
+            document.getElementById('submitBtn').textContent = 'Add Book';
+            document.getElementById('formAction').value = 'add';
+            document.getElementById('bookId').value = '';
+            document.getElementById('bookForm').reset();
+            document.getElementById('is_active').checked = true;
+            document.getElementById('currentImage').classList.add('hidden');
+            document.getElementById('bookModal').classList.remove('hidden');
+        }
+
+        function closeBookModal() {
+            document.getElementById('bookModal').classList.add('hidden');
+        }
+
+        function closeImageModal() {
+            document.getElementById('imageModal').classList.add('hidden');
+        }
+
+        function closeViewModal() {
+            document.getElementById('viewModal').classList.add('hidden');
+        }
+
+        // Book Operations
+        async function editBook(bookId) {
+            showLoading();
+            try {
+                const response = await fetch(`/admin/api/books/${bookId}/`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    const book = data.book;
+                    
+                    // Fill form with book data
+                    document.getElementById('modalTitle').textContent = 'Edit Book';
+                    document.getElementById('submitBtn').textContent = 'Update Book';
+                    document.getElementById('formAction').value = 'edit';
+                    document.getElementById('bookId').value = book.id;
+                    document.getElementById('title').value = book.title || '';
+                    document.getElementById('subtitle').value = book.subtitle || '';
+                    document.getElementById('isbn_10').value = book.isbn_10 || '';
+                    document.getElementById('isbn_13').value = book.isbn_13 || '';
+                    document.getElementById('description').value = book.description || '';
+                    document.getElementById('publisher').value = book.publisher || '';
+                    document.getElementById('format').value = book.format || 'paperback';
+                    document.getElementById('condition').value = book.condition || 'new';
+                    document.getElementById('pages').value = book.pages || '';
+                    document.getElementById('language').value = book.language || 'English';
+                    document.getElementById('publication_date').value = book.publication_date || '';
+                    document.getElementById('price').value = book.price || '';
+                    document.getElementById('compare_at_price').value = book.compare_at_price || '';
+                    document.getElementById('stock_quantity').value = book.stock_quantity || '0';
+                    document.getElementById('low_stock_threshold').value = book.low_stock_threshold || '5';
+                    document.getElementById('is_active').checked = book.is_active;
+                    document.getElementById('is_featured').checked = book.is_featured;
+                    document.getElementById('is_bestseller').checked = book.is_bestseller;
+                    document.getElementById('is_new_arrival').checked = book.is_new_arrival;
+
+                    // Set authors and categories
+                    const authorsSelect = document.getElementById('authors');
+                    Array.from(authorsSelect.options).forEach(option => {
+                        option.selected = book.authors.includes(parseInt(option.value));
+                    });
+
+                    const categoriesSelect = document.getElementById('categories');
+                    Array.from(categoriesSelect.options).forEach(option => {
+                        option.selected = book.categories.includes(parseInt(option.value));
+                    });
+
+                    // Show current image if exists
+                    if (book.cover_image) {
+                        document.getElementById('currentImagePreview').src = book.cover_image;
+                        document.getElementById('currentImage').classList.remove('hidden');
+                    } else {
+                        document.getElementById('currentImage').classList.add('hidden');
+                    }
+
+                    document.getElementById('bookModal').classList.remove('hidden');
+                } else {
+                    showNotification('Failed to load book data', 'error');
+                }
+            } catch (error) {
+                console.error('Error loading book:', error);
+                showNotification('Error loading book data', 'error');
+            } finally {
+                hideLoading();
+            }
+        }
+
+        async function viewBook(bookId) {
+            showLoading();
+            try {
+                const response = await fetch(`/admin/api/books/${bookId}/`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    const book = data.book;
+                    const detailsContainer = document.getElementById('bookDetails');
+                    
+                    detailsContainer.innerHTML = `
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            <div class="col-span-1">
+                                ${book.cover_image ? 
+                                    `<img src="${book.cover_image}" alt="${book.title}" class="w-full rounded-lg shadow-lg">` :
+                                    '<div class="w-full h-64 bg-gray-200 rounded-lg flex items-center justify-center"><i class="fas fa-book text-4xl text-gray-400"></i></div>'
+                                }
+                            </div>
+                            <div class="col-span-2 space-y-4">
+                                <div>
+                                    <h2 class="text-2xl font-bold text-gray-900">${book.title}</h2>
+                                    ${book.subtitle ? `<h3 class="text-lg text-gray-600">${book.subtitle}</h3>` : ''}
+                                </div>
+                                
+                                <div class="grid grid-cols-2 gap-4 text-sm">
+                                    <div><strong>ISBN-10:</strong> ${book.isbn_10 || 'N/A'}</div>
+                                    <div><strong>ISBN-13:</strong> ${book.isbn_13 || 'N/A'}</div>
+                                    <div><strong>Format:</strong> ${book.format}</div>
+                                    <div><strong>Condition:</strong> ${book.condition}</div>
+                                    <div><strong>Pages:</strong> ${book.pages || 'N/A'}</div>
+                                    <div><strong>Language:</strong> ${book.language}</div>
+                                    <div><strong>Publication:</strong> ${book.publication_date || 'N/A'}</div>
+                                    <div><strong>Price:</strong> KSh ${book.price}</div>
+                                    <div><strong>Stock:</strong> ${book.stock_quantity}</div>
+                                    <div><strong>Status:</strong> ${book.is_active ? 'Active' : 'Inactive'}</div>
+                                </div>
+                                
+                                <div>
+                                    <h4 class="font-semibold text-gray-900 mb-2">Description</h4>
+                                    <p class="text-gray-700">${book.description}</p>
+                                </div>
+                                
+                                <div class="flex flex-wrap gap-2">
+                                    ${book.is_featured ? '<span class="px-2 py-1 bg-purple-100 text-purple-800 rounded text-xs">Featured</span>' : ''}
+                                    ${book.is_bestseller ? '<span class="px-2 py-1 bg-yellow-100 text-yellow-800 rounded text-xs">Bestseller</span>' : ''}
+                                    ${book.is_new_arrival ? '<span class="px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs">New Arrival</span>' : ''}
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    
+                    document.getElementById('viewModal').classList.remove('hidden');
+                } else {
+                    showNotification('Failed to load book details', 'error');
+                }
+            } catch (error) {
+                console.error('Error loading book details:', error);
+                showNotification('Error loading book details', 'error');
+            } finally {
+                hideLoading();
+            }
+        }
+
+        async function toggleBookStatus(bookId, currentStatus) {
+            const action = currentStatus ? 'deactivate' : 'activate';
+            
+            if (!confirm(`Are you sure you want to ${action} this book?`)) {
+                return;
+            }
+
+            showLoading();
+            try {
+                const response = await fetch(`/admin/books/${bookId}/toggle-status/`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': csrfToken,
+                        'Content-Type': 'application/json',
+                    },
+                });
+                
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    showNotification(data.message, 'success');
+                    location.reload(); // Reload to update the table
+                } else {
+                    showNotification(data.message, 'error');
+                }
+            } catch (error) {
+                console.error('Error toggling book status:', error);
+                showNotification('Error updating book status', 'error');
+            } finally {
+                hideLoading();
+            }
+        }
+
+        async function deleteBook(bookId, bookTitle) {
+            if (!confirm(`Are you sure you want to delete "${bookTitle}"? This action cannot be undone.`)) {
+                return;
+            }
+
+            showLoading();
+            try {
+                const response = await fetch(`/admin/books/${bookId}/delete/`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': csrfToken,
+                        'Content-Type': 'application/json',
+                    },
+                });
+                
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    showNotification(data.message, 'success');
+                    location.reload(); // Reload to update the table
+                } else {
+                    showNotification(data.message, 'error');
+                }
+            } catch (error) {
+                console.error('Error deleting book:', error);
+                showNotification('Error deleting book', 'error');
+            } finally {
+                hideLoading();
+            }
+        }
+
+        // Image Management
+        async function manageImages(bookId) {
+            currentBookId = bookId;
+            await loadBookImages(bookId);
+            document.getElementById('imageModal').classList.remove('hidden');
+        }
+
+        async function loadBookImages(bookId) {
+            showLoading();
+            try {
+                const response = await fetch(`/admin/books/${bookId}/images/`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    currentImages = data.images;
+                    displayImages(data.images);
+                } else {
+                    showNotification('Failed to load images', 'error');
+                }
+            } catch (error) {
+                console.error('Error loading images:', error);
+                showNotification('Error loading images', 'error');
+            } finally {
+                hideLoading();
+            }
+        }
+
+        function displayImages(images) {
+            const grid = document.getElementById('imagesGrid');
+            grid.innerHTML = '';
+
+            if (images.length === 0) {
+                grid.innerHTML = '<div class="col-span-4 text-center text-gray-500 py-8">No images found</div>';
+                return;
+            }
+
+            images.forEach(image => {
+                const imageDiv = document.createElement('div');
+                imageDiv.className = 'relative group';
+                imageDiv.innerHTML = `
+                    <img src="${image.image_url}" alt="${image.alt_text}" class="w-full h-32 object-cover rounded-lg">
+                    ${image.is_primary ? '<div class="absolute top-2 left-2 bg-blue-600 text-white text-xs px-2 py-1 rounded">Primary</div>' : ''}
+                    <div class="absolute inset-0 bg-black bg-opacity-50 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center space-x-2">
+                        ${!image.is_primary ? `<button onclick="setPrimaryImage(${image.id})" class="text-white hover:text-blue-300" title="Set as Primary"><i class="fas fa-star"></i></button>` : ''}
+                        <button onclick="deleteImage(${image.id})" class="text-white hover:text-red-300" title="Delete"><i class="fas fa-trash"></i></button>
+                    </div>
+                `;
+                grid.appendChild(imageDiv);
+            });
+        }
+
+        async function uploadImages() {
+            const fileInput = document.getElementById('additionalImages');
+            const files = fileInput.files;
+
+            if (files.length === 0) {
+                showNotification('Please select images to upload', 'warning');
+                return;
+            }
+
+            const formData = new FormData();
+            for (let i = 0; i < files.length; i++) {
+                formData.append('images', files[i]);
+            }
+            formData.append('csrfmiddlewaretoken', csrfToken);
+
+            showLoading();
+            try {
+                const response = await fetch(`/admin/books/${currentBookId}/upload-images/`, {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-CSRFToken': csrfToken,
+                    },
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showNotification('Images uploaded successfully', 'success');
+                    fileInput.value = '';
+                    await loadBookImages(currentBookId);
+                } else {
+                    showNotification(data.message || 'Failed to upload images', 'error');
+                }
+            } catch (error) {
+                console.error('Error uploading images:', error);
+                showNotification('Error uploading images', 'error');
+            } finally {
+                hideLoading();
+            }
+        }
+
+        async function setPrimaryImage(imageId) {
+            showLoading();
+            try {
+                const response = await fetch(`/admin/books/${currentBookId}/set-primary-image/${imageId}/`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': csrfToken,
+                        'Content-Type': 'application/json',
+                    },
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showNotification(data.message, 'success');
+                    await loadBookImages(currentBookId);
+                } else {
+                    showNotification(data.message, 'error');
+                }
+            } catch (error) {
+                console.error('Error setting primary image:', error);
+                showNotification('Error setting primary image', 'error');
+            } finally {
+                hideLoading();
+            }
+        }
+
+        async function deleteImage(imageId) {
+            if (!confirm('Are you sure you want to delete this image?')) {
+                return;
+            }
+
+            showLoading();
+            try {
+                const response = await fetch(`/admin/books/${currentBookId}/delete-image/${imageId}/`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': csrfToken,
+                        'Content-Type': 'application/json',
+                    },
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showNotification(data.message, 'success');
+                    await loadBookImages(currentBookId);
+                } else {
+                    showNotification(data.message, 'error');
+                }
+            } catch (error) {
+                console.error('Error deleting image:', error);
+                showNotification('Error deleting image', 'error');
+            } finally {
+                hideLoading();
+            }
+        }
+
+        // Form Submission
+        document.getElementById('bookForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(this);
+            formData.append('csrfmiddlewaretoken', csrfToken);
+
+            showLoading();
+            try {
+                const response = await fetch('/admin/books/', {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRFToken': csrfToken,
+                    },
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showNotification(data.message, 'success');
+                    closeBookModal();
+                    location.reload(); // Reload to update the table
+                } else {
+                    showNotification(data.message, 'error');
+                }
+            } catch (error) {
+                console.error('Error submitting form:', error);
+                showNotification('Error submitting form', 'error');
+            } finally {
+                hideLoading();
+            }
+        });
+
+        // Search and Filter Functions
+        function filterBooks() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            const categoryFilter = document.getElementById('categoryFilter').value;
+            const statusFilter = document.getElementById('statusFilter').value;
+            
+            const rows = document.querySelectorAll('#booksTableBody tr');
+            
+            rows.forEach(row => {
+                const bookId = row.dataset.bookId;
+                if (!bookId) return; // Skip empty rows
+                
+                let visible = true;
+                
+                // Search filter
+                if (searchTerm) {
+                    const title = row.querySelector('.text-sm.font-medium').textContent.toLowerCase();
+                    const authors = row.querySelectorAll('td')[1].textContent.toLowerCase();
+                    const isbn = row.querySelector('.text-sm.text-gray-500').textContent.toLowerCase();
+                    
+                    if (!title.includes(searchTerm) && !authors.includes(searchTerm) && !isbn.includes(searchTerm)) {
+                        visible = false;
+                    }
+                }
+                
+                // Category filter (would need additional data attributes in the template)
+                // Status filter (would need additional data attributes in the template)
+                
+                row.style.display = visible ? '' : 'none';
+            });
+        }
+
+        function clearFilters() {
+            document.getElementById('searchInput').value = '';
+            document.getElementById('categoryFilter').value = '';
+            document.getElementById('statusFilter').value = '';
+            filterBooks();
+        }
+
+        // Event Listeners
+        document.getElementById('searchInput').addEventListener('input', filterBooks);
+        document.getElementById('categoryFilter').addEventListener('change', filterBooks);
+        document.getElementById('statusFilter').addEventListener('change', filterBooks);
+
+        document.getElementById('booksTableBody').addEventListener('click', function(e) {
+            const button = e.target.closest('button[data-action]');
+            if (!button) return;
+
+            const action = button.dataset.action;
+            const actionContainer = button.parentElement;
+            const bookId = actionContainer.dataset.bookId;
+            const bookTitle = actionContainer.dataset.bookTitle;
+            const bookIsActive = actionContainer.dataset.bookIsActive === 'true';
+
+            switch (action) {
+                case 'view':
+                    viewBook(bookId);
+                    break;
+                case 'edit':
+                    editBook(bookId);
+                    break;
+                case 'images':
+                    manageImages(bookId);
+                    break;
+                case 'toggle-status':
+                    toggleBookStatus(bookId, bookIsActive);
+                    break;
+                case 'delete':
+                    deleteBook(bookId, bookTitle);
+                    break;
+            }
+        });
+
+        // Close modals when clicking outside
+        document.addEventListener('click', function(e) {
+            if (e.target.classList.contains('modal-backdrop')) {
+                closeBookModal();
+                closeImageModal();
+                closeViewModal();
+            }
+        });
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeBookModal();
+                closeImageModal();
+                closeViewModal();
+            }
+        });
+    </script>
+</body>
+</html>
+{% endblock content %}

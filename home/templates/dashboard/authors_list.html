@@ -1,0 +1,435 @@
+{% extends 'dashboard/base.html' %}
+
+{% block title %}Authors Management - Admin Dashboard{% endblock %}
+{% block page_title %}Authors Management{% endblock %}
+{% block page_description %}Manage book authors, track author contributions, and maintain author profiles.{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Author Statistics -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+            <div class="flex items-center">
+                <div class="flex-1">
+                    <p class="text-sm text-gray-600">Total Authors</p>
+                    <p class="text-xl font-bold text-blue-600">{{ total_authors }}</p>
+                </div>
+                <i class="fas fa-user-edit text-blue-500 text-xl"></i>
+            </div>
+        </div>
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+            <div class="flex items-center">
+                <div class="flex-1">
+                    <p class="text-sm text-gray-600">Authors with Books</p>
+                    <p class="text-xl font-bold text-green-600">{{ authors_with_books }}</p>
+                </div>
+                <i class="fas fa-book text-green-500 text-xl"></i>
+            </div>
+        </div>
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+            <div class="flex items-center">
+                <div class="flex-1">
+                    <p class="text-sm text-gray-600">Most Prolific</p>
+                    <p class="text-xl font-bold text-purple-600">
+                        {% if most_productive %}{{ most_productive.book_count }}{% else %}0{% endif %}
+                    </p>
+                </div>
+                <i class="fas fa-star text-purple-500 text-xl"></i>
+            </div>
+        </div>
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+            <div class="flex items-center">
+                <div class="flex-1">
+                    <p class="text-sm text-gray-600">No Books Yet</p>
+                    <p class="text-xl font-bold text-yellow-600">{{ authors_without_books }}</p>
+                </div>
+                <i class="fas fa-exclamation-triangle text-yellow-500 text-xl"></i>
+            </div>
+        </div>
+    </div>
+
+    <!-- Search and Add Button -->
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <!-- Search Form -->
+        <form method="get" class="flex-1 max-w-md">
+            <div class="relative">
+                <input type="text" name="search" value="{{ current_search }}" 
+                       placeholder="Search authors by name or bio..." 
+                       class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-500">
+                <i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                {% if current_search %}
+                <a href="{% url 'authors' %}" class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                    <i class="fas fa-times"></i>
+                </a>
+                {% endif %}
+            </div>
+        </form>
+        
+        <!-- Add Author Button -->
+        <button onclick="openAddAuthorModal()" 
+                class="btn-primary text-white px-6 py-2 rounded-lg hover:bg-gray-800 transition-colors">
+            <i class="fas fa-plus mr-2"></i>
+            Add New Author
+        </button>
+    </div>
+
+    <!-- Authors Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        {% for author in page_obj %}
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
+            <div class="p-6">
+                <!-- Author Header -->
+                <div class="flex items-start justify-between mb-4">
+                    <div class="flex-1">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-1">{{ author.full_name }}</h3>
+                        <p class="text-sm text-gray-500">{{ author.book_count }} book{{ author.book_count|pluralize }}</p>
+                    </div>
+                    {% if author.photo %}
+                    <img src="{{ author.photo.url }}" alt="{{ author.full_name }}" 
+                         class="w-12 h-12 rounded-full object-cover ml-4">
+                    {% else %}
+                    <div class="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center ml-4">
+                        <i class="fas fa-user text-gray-400"></i>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- Author Bio -->
+                {% if author.bio %}
+                <div class="mb-4">
+                    <p class="text-sm text-gray-600 line-clamp-3">{{ author.bio|truncatewords:20 }}</p>
+                </div>
+                {% endif %}
+
+                <!-- Author Stats -->
+                <div class="space-y-2 mb-4">
+                    {% if author.birth_date or author.death_date %}
+                    <div class="flex justify-between items-center text-sm">
+                        <span class="text-gray-600">Lifespan:</span>
+                        <span class="text-gray-500">
+                            {% if author.birth_date %}{{ author.birth_date|date:"Y" }}{% endif %}
+                            {% if author.death_date %} - {{ author.death_date|date:"Y" }}{% endif %}
+                        </span>
+                    </div>
+                    {% endif %}
+                    <div class="flex justify-between items-center text-sm">
+                        <span class="text-gray-600">Created:</span>
+                        <span class="text-gray-500">{{ author.created_at|date:"M d, Y" }}</span>
+                    </div>
+                    {% if author.website %}
+                    <div class="flex justify-between items-center text-sm">
+                        <span class="text-gray-600">Website:</span>
+                        <a href="{{ author.website }}" target="_blank" class="text-blue-600 hover:text-blue-800 truncate ml-2">
+                            Visit <i class="fas fa-external-link-alt text-xs"></i>
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- Actions -->
+                <div class="flex items-center justify-between pt-4 border-t border-gray-100">
+                    <div class="flex items-center space-x-3">
+                        <button onclick="editAuthor('{{ author.id }}', '{{ author.first_name }}', '{{ author.last_name }}', `{{ author.bio|default:""|escapejs }}`, '{{ author.birth_date|default:"" }}', '{{ author.death_date|default:"" }}', '{{ author.website|default:"" }}')"
+                                class="text-blue-600 hover:text-blue-800" title="Edit Author">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        {% if author.book_count == 0 %}
+                        <button onclick="deleteAuthor('{{ author.id }}', '{{ author.full_name }}')"
+                                class="text-red-600 hover:text-red-800" title="Delete Author">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                        {% else %}
+                        <span class="text-gray-400 cursor-not-allowed" title="Cannot delete author with books">
+                            <i class="fas fa-trash"></i>
+                        </span>
+                        {% endif %}
+                    </div>
+                    {% if author.book_count > 0 %}
+                    <a href="{% url 'books' %}?author={{ author.id }}" 
+                       class="text-sm text-blue-600 hover:text-blue-800">
+                        View Books <i class="fas fa-arrow-right ml-1"></i>
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-span-full">
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center">
+                <i class="fas fa-user-edit text-4xl text-gray-400 mb-4"></i>
+                <h3 class="text-lg font-medium text-gray-900 mb-2">No authors found</h3>
+                <p class="text-gray-500 mb-6">{% if current_search %}No authors match your search.{% else %}Get started by adding your first author.{% endif %}</p>
+                <button onclick="openAddAuthorModal()" 
+                        class="btn-primary text-white px-6 py-2 rounded-lg hover:bg-gray-800 transition-colors">
+                    <i class="fas fa-plus mr-2"></i>
+                    Add First Author
+                </button>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Pagination -->
+    {% if page_obj.has_other_pages %}
+    <div class="flex justify-center mt-8">
+        <nav class="flex items-center space-x-2">
+            {% if page_obj.has_previous %}
+            <a href="?page={{ page_obj.previous_page_number }}{% if current_search %}&search={{ current_search }}{% endif %}" 
+               class="px-3 py-1 border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50">
+                <i class="fas fa-chevron-left"></i>
+            </a>
+            {% endif %}
+
+            {% for num in page_obj.paginator.page_range %}
+                {% if page_obj.number == num %}
+                <span class="px-3 py-1 border border-gray-300 bg-gray-100 text-gray-800 rounded-lg font-medium">{{ num }}</span>
+                {% else %}
+                <a href="?page={{ num }}{% if current_search %}&search={{ current_search }}{% endif %}" 
+                   class="px-3 py-1 border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50">{{ num }}</a>
+                {% endif %}
+            {% endfor %}
+
+            {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}{% if current_search %}&search={{ current_search }}{% endif %}" 
+               class="px-3 py-1 border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50">
+                <i class="fas fa-chevron-right"></i>
+            </a>
+            {% endif %}
+        </nav>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Add/Edit Author Modal -->
+<div id="authorModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden items-center justify-center z-50">
+    <div class="bg-white rounded-lg p-6 w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
+        <h3 id="modalTitle" class="text-lg font-semibold mb-4">Add New Author</h3>
+        <form id="authorForm" method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+            <input type="hidden" id="authorId" name="author_id">
+            <input type="hidden" id="action" name="action" value="add">
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">First Name *</label>
+                    <input type="text" id="authorFirstName" name="first_name" required
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-500"
+                           placeholder="Author's first name">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Last Name *</label>
+                    <input type="text" id="authorLastName" name="last_name" required
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-500"
+                           placeholder="Author's last name">
+                </div>
+            </div>
+
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-2">Biography</label>
+                <textarea id="authorBio" name="bio" rows="4"
+                          class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-500"
+                          placeholder="Brief biography of the author..."></textarea>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Birth Date</label>
+                    <input type="date" id="authorBirthDate" name="birth_date"
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Death Date</label>
+                    <input type="date" id="authorDeathDate" name="death_date"
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-500">
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Website</label>
+                    <input type="url" id="authorWebsite" name="website"
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-500"
+                           placeholder="https://example.com">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Photo</label>
+                    <input type="file" id="authorPhoto" name="photo" accept="image/*"
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-500">
+                </div>
+            </div>
+
+            <div class="flex space-x-3">
+                <button type="submit" class="flex-1 btn-primary text-white py-2 rounded-lg hover:bg-gray-800 transition-colors">
+                    <span id="submitText">Add Author</span>
+                </button>
+                <button type="button" onclick="closeAuthorModal()" 
+                        class="flex-1 bg-gray-200 text-gray-800 py-2 rounded-lg hover:bg-gray-300 transition-colors">
+                    Cancel
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div id="deleteModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden items-center justify-center z-50">
+    <div class="bg-white rounded-lg p-6 w-full max-w-md mx-4">
+        <h3 class="text-lg font-semibold mb-4 text-red-600">Confirm Deletion</h3>
+        <p id="deleteMessage" class="text-gray-600 mb-6">Are you sure you want to delete this author?</p>
+        <form id="deleteForm" method="post">
+            {% csrf_token %}
+            <input type="hidden" id="deleteAuthorId" name="author_id">
+            <input type="hidden" name="action" value="delete">
+            
+            <div class="flex space-x-3">
+                <button type="submit" class="flex-1 bg-red-600 text-white py-2 rounded-lg hover:bg-red-700 transition-colors">
+                    Delete
+                </button>
+                <button type="button" onclick="closeDeleteModal()" 
+                        class="flex-1 bg-gray-200 text-gray-800 py-2 rounded-lg hover:bg-gray-300 transition-colors">
+                    Cancel
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let isEditing = false;
+
+function openAddAuthorModal() {
+    isEditing = false;
+    document.getElementById('modalTitle').textContent = 'Add New Author';
+    document.getElementById('submitText').textContent = 'Add Author';
+    document.getElementById('action').value = 'add';
+    document.getElementById('authorId').value = '';
+    document.getElementById('authorFirstName').value = '';
+    document.getElementById('authorLastName').value = '';
+    document.getElementById('authorBio').value = '';
+    document.getElementById('authorBirthDate').value = '';
+    document.getElementById('authorDeathDate').value = '';
+    document.getElementById('authorWebsite').value = '';
+    document.getElementById('authorPhoto').value = '';
+    
+    document.getElementById('authorModal').classList.remove('hidden');
+    document.getElementById('authorModal').classList.add('flex');
+    document.getElementById('authorFirstName').focus();
+}
+
+function editAuthor(id, firstName, lastName, bio, birthDate, deathDate, website) {
+    isEditing = true;
+    document.getElementById('modalTitle').textContent = 'Edit Author';
+    document.getElementById('submitText').textContent = 'Update Author';
+    document.getElementById('action').value = 'edit';
+    document.getElementById('authorId').value = id;
+    document.getElementById('authorFirstName').value = firstName;
+    document.getElementById('authorLastName').value = lastName;
+    document.getElementById('authorBio').value = bio;
+    document.getElementById('authorBirthDate').value = birthDate;
+    document.getElementById('authorDeathDate').value = deathDate;
+    document.getElementById('authorWebsite').value = website;
+    
+    document.getElementById('authorModal').classList.remove('hidden');
+    document.getElementById('authorModal').classList.add('flex');
+    document.getElementById('authorFirstName').focus();
+}
+
+function closeAuthorModal() {
+    document.getElementById('authorModal').classList.add('hidden');
+    document.getElementById('authorModal').classList.remove('flex');
+}
+
+function deleteAuthor(authorId, authorName) {
+    document.getElementById('deleteMessage').textContent = 'Are you sure you want to delete the author "' + authorName + '"? This action cannot be undone.';
+    document.getElementById('deleteAuthorId').value = authorId;
+    
+    document.getElementById('deleteModal').classList.remove('hidden');
+    document.getElementById('deleteModal').classList.add('flex');
+}
+
+function closeDeleteModal() {
+    document.getElementById('deleteModal').classList.add('hidden');
+    document.getElementById('deleteModal').classList.remove('flex');
+}
+
+// Handle form submission
+document.getElementById('authorForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    const url = isEditing ? '/dashboard/authors/' + formData.get('author_id') + '/edit/' : '/admin/authors/add/';
+    
+    fetch(url, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': formData.get('csrfmiddlewaretoken'),
+        },
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success') {
+            location.reload();
+        } else {
+            alert('Error saving author: ' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('An error occurred while saving the author.');
+    });
+});
+
+// Handle delete form submission
+document.getElementById('deleteForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    const authorId = formData.get('author_id');
+    
+    fetch('/dashboard/authors/' + authorId + '/delete/', {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': formData.get('csrfmiddlewaretoken'),
+        },
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success') {
+            location.reload();
+        } else {
+            alert('Error deleting author: ' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('An error occurred while deleting the author.');
+    });
+});
+
+// Close modals when clicking outside
+document.getElementById('authorModal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        closeAuthorModal();
+    }
+});
+
+document.getElementById('deleteModal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        closeDeleteModal();
+    }
+});
+
+// Close modals with Escape key
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        closeAuthorModal();
+        closeDeleteModal();
+    }
+});
+</script>
+{% endblock %}

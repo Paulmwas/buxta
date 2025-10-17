@@ -1,0 +1,178 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Shop - Buxta{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<section class="py-12" style="background-color: var(--bg-light-2);">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <h1 class="text-4xl lg:text-5xl font-light mb-4" style="color: var(--text-black);">Our Book Collection</h1>
+        <p class="text-lg" style="color: var(--text-light);">Discover your next favorite book from our curated selection</p>
+    </div>
+</section>
+
+<!-- Shop Section -->
+<section class="py-12" style="background-color: var(--bg-white);">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex flex-col lg:flex-row gap-8">
+            <!-- Sidebar Filters -->
+            <aside class="lg:w-64 flex-shrink-0">
+                <div class="sticky top-24">
+                    <!-- Categories Filter -->
+                    <div class="mb-8">
+                        <h3 class="text-lg font-semibold mb-4" style="color: var(--text-black);">Categories</h3>
+                        <div class="space-y-2">
+                            <a href="{% url 'shop' %}" class="block px-4 py-2 rounded-lg transition-colors {% if not current_category %}font-medium{% endif %}" style="{% if not current_category %}background-color: var(--bg-light-1); color: var(--text-black);{% else %}color: var(--text-medium);{% endif %}">
+                                All Books
+                            </a>
+                            {% for category in categories %}
+                            <a href="{% url 'shop' %}?category={{ category.slug }}" class="block px-4 py-2 rounded-lg hover:bg-gray-50 transition-colors {% if current_category == category.slug %}font-medium{% endif %}" style="{% if current_category == category.slug %}background-color: var(--bg-light-1); color: var(--text-black);{% else %}color: var(--text-medium);{% endif %}">
+                                {{ category.name }}
+                            </a>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    
+                    <!-- Price Filter -->
+                    <div class="mb-8">
+                        <h3 class="text-lg font-semibold mb-4" style="color: var(--text-black);">Price Range</h3>
+                        <div class="space-y-2">
+                            <label class="flex items-center gap-2 cursor-pointer">
+                                <input type="checkbox" class="rounded" style="color: var(--bg-black);">
+                                <span style="color: var(--text-medium);">Under Ksh10</span>
+                            </label>
+                            <label class="flex items-center gap-2 cursor-pointer">
+                                <input type="checkbox" class="rounded" style="color: var(--bg-black);">
+                                <span style="color: var(--text-medium);">Ksh10 - Ksh20</span>
+                            </label>
+                            <label class="flex items-center gap-2 cursor-pointer">
+                                <input type="checkbox" class="rounded" style="color: var(--bg-black);">
+                                <span style="color: var(--text-medium);">Ksh20 - Ksh30</span>
+                            </label>
+                            <label class="flex items-center gap-2 cursor-pointer">
+                                <input type="checkbox" class="rounded" style="color: var(--bg-black);">
+                                <span style="color: var(--text-medium);">Over Ksh30</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </aside>
+            
+            <!-- Main Content -->
+            <div class="flex-1">
+                <!-- Results Header -->
+                <div class="flex items-center justify-between mb-8 pb-4 border-b" style="border-color: var(--bg-light-3);">
+                    <p style="color: var(--text-medium);">
+                        Showing <span class="font-semibold" style="color: var(--text-black);">{{ books.count }}</span> books
+                    </p>
+                    
+                    <div class="flex items-center gap-4">
+                        <label class="flex items-center gap-2">
+                            <span class="text-sm" style="color: var(--text-medium);">Sort by:</span>
+                            <select class="border rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black" style="border-color: var(--bg-medium);">
+                                <option>Featured</option>
+                                <option>Price: Low to High</option>
+                                <option>Price: High to Low</option>
+                                <option>Newest</option>
+                            </select>
+                        </label>
+                    </div>
+                </div>
+                
+                <!-- Books Grid -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
+                    {% for book in books %}
+                    <div class="book-card group">
+                        <a href="{% url 'book_detail' book.slug %}" class="block">
+                            <div class="relative overflow-hidden rounded-lg mb-4" style="background-color: var(--bg-light-2);">
+                                {% if book.images.exists %}
+                                    <img src="{{ book.images.first.image.url }}" 
+                                         alt="{{ book.title }}" 
+                                         class="w-full h-96 object-cover">
+                                {% else %}
+                                    <div class="w-full h-96 flex items-center justify-center">
+                                        <i class="fas fa-book text-6xl" style="color: var(--bg-medium);"></i>
+                                    </div>
+                                {% endif %}
+                                
+                                <!-- Sale Badge -->
+                                {% if book.is_on_sale and book.discount_percentage %}
+                                <div class="absolute top-4 right-4 px-3 py-1 rounded-full text-sm font-semibold" style="background-color: var(--accent-gold); color: var(--text-white);">
+                                    -{{ book.discount_percentage }}%
+                                </div>
+                                {% endif %}
+                                
+                                <!-- Stock Badge -->
+                                {% if not book.is_in_stock %}
+                                <div class="absolute top-4 left-4 px-3 py-1 rounded-full text-sm font-semibold" style="background-color: var(--bg-black); color: var(--text-white);">
+                                    Out of Stock
+                                </div>
+                                {% elif book.is_low_stock %}
+                                <div class="absolute top-4 left-4 px-3 py-1 rounded-full text-sm font-semibold" style="background-color: var(--accent-rose); color: var(--text-white);">
+                                    Low Stock
+                                </div>
+                                {% endif %}
+                                
+                                <div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 transition-all duration-300"></div>
+                            </div>
+                        </a>
+                        
+                        <div class="space-y-2">
+                            <a href="{% url 'book_detail' book.slug %}" class="block">
+                                <h3 class="font-medium text-lg line-clamp-2 hover:underline" style="color: var(--text-black);">
+                                    {{ book.title }}
+                                </h3>
+                            </a>
+                            
+                            {% if book.authors.exists %}
+                            <p class="text-sm" style="color: var(--text-light);">
+                                by {{ book.authors.first.full_name }}
+                            </p>
+                            {% endif %}
+                            
+                            <div class="flex items-center gap-2">
+                                <span class="price-current text-xl">Ksh{{ book.price }}</span>
+                                {% if book.compare_at_price %}
+                                    <span class="price-original text-sm">Ksh{{ book.compare_at_price }}</span>
+                                {% endif %}
+                            </div>
+                            
+                            {% if book.average_rating > 0 %}
+                            <div class="flex items-center gap-1">
+                                {% for i in "12345" %}
+                                    {% if forloop.counter <= book.average_rating %}
+                                        <i class="fas fa-star text-sm" style="color: var(--accent-gold);"></i>
+                                    {% else %}
+                                        <i class="far fa-star text-sm" style="color: var(--accent-gold);"></i>
+                                    {% endif %}
+                                {% endfor %}
+                                <span class="text-sm ml-1" style="color: var(--text-light);">({{ book.review_count }})</span>
+                            </div>
+                            {% endif %}
+                            
+                            {% if book.is_in_stock %}
+                            <button onclick="addToCart({{ book.id }})" class="add-to-cart-btn btn-primary w-full py-3 rounded-full font-medium mt-3">
+                                <i class="fas fa-shopping-cart mr-2"></i>Add to Cart
+                            </button>
+                            {% else %}
+                            <button disabled class="w-full py-3 rounded-full font-medium mt-3 cursor-not-allowed opacity-50" style="background-color: var(--bg-medium); color: var(--text-white);">
+                                Out of Stock
+                            </button>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="col-span-full text-center py-12">
+                        <i class="fas fa-book-open text-6xl mb-4" style="color: var(--bg-medium);"></i>
+                        <p class="text-lg mb-2" style="color: var(--text-black);">No books found</p>
+                        <p style="color: var(--text-light);">Try adjusting your filters or search query</p>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+{% endblock content %}

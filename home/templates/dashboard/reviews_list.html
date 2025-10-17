@@ -1,0 +1,524 @@
+{% extends 'dashboard/base.html' %}
+
+{% block title %}Reviews Management - Admin Dashboard{% endblock %}
+{% block page_title %}Reviews Management{% endblock %}
+{% block page_description %}Manage customer reviews, moderate content, and track review performance.{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Review Statistics -->
+    <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+            <div class="flex items-center">
+                <div class="flex-1">
+                    <p class="text-sm text-gray-600">Total Reviews</p>
+                    <p class="text-xl font-bold text-blue-600">{{ total_reviews }}</p>
+                </div>
+                <i class="fas fa-star text-blue-500 text-xl"></i>
+            </div>
+        </div>
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+            <div class="flex items-center">
+                <div class="flex-1">
+                    <p class="text-sm text-gray-600">Pending</p>
+                    <p class="text-xl font-bold text-yellow-600">{{ pending_reviews }}</p>
+                </div>
+                <i class="fas fa-clock text-yellow-500 text-xl"></i>
+            </div>
+        </div>
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+            <div class="flex items-center">
+                <div class="flex-1">
+                    <p class="text-sm text-gray-600">Approved</p>
+                    <p class="text-xl font-bold text-green-600">{{ approved_reviews }}</p>
+                </div>
+                <i class="fas fa-check-circle text-green-500 text-xl"></i>
+            </div>
+        </div>
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+            <div class="flex items-center">
+                <div class="flex-1">
+                    <p class="text-sm text-gray-600">Verified Purchase</p>
+                    <p class="text-xl font-bold text-purple-600">{{ verified_reviews }}</p>
+                </div>
+                <i class="fas fa-shield-alt text-purple-500 text-xl"></i>
+            </div>
+        </div>
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+            <div class="flex items-center">
+                <div class="flex-1">
+                    <p class="text-sm text-gray-600">Avg Rating</p>
+                    <p class="text-xl font-bold text-orange-600">{{ avg_rating }}/5</p>
+                </div>
+                <i class="fas fa-star-half-alt text-orange-500 text-xl"></i>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters and Search -->
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+        <form method="get" class="flex flex-wrap items-center gap-4">
+            <!-- Search -->
+            <div class="flex-1 min-w-64">
+                <div class="relative">
+                    <input type="text" name="search" value="{{ search_query }}" 
+                           placeholder="Search reviews, books, or customers..."
+                           class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-500">
+                    <i class="fas fa-search absolute left-3 top-3 text-gray-400"></i>
+                </div>
+            </div>
+            
+            <!-- Status Filter -->
+            <div>
+                <select name="status" class="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-500">
+                    <option value="all" {% if status_filter == 'all' %}selected{% endif %}>All Status</option>
+                    <option value="pending" {% if status_filter == 'pending' %}selected{% endif %}>Pending</option>
+                    <option value="approved" {% if status_filter == 'approved' %}selected{% endif %}>Approved</option>
+                    <option value="verified" {% if status_filter == 'verified' %}selected{% endif %}>Verified Purchase</option>
+                </select>
+            </div>
+            
+            <!-- Rating Filter -->
+            <div>
+                <select name="rating" class="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-500">
+                    <option value="">All Ratings</option>
+                    <option value="5" {% if rating_filter == '5' %}selected{% endif %}>5 Stars</option>
+                    <option value="4" {% if rating_filter == '4' %}selected{% endif %}>4 Stars</option>
+                    <option value="3" {% if rating_filter == '3' %}selected{% endif %}>3 Stars</option>
+                    <option value="2" {% if rating_filter == '2' %}selected{% endif %}>2 Stars</option>
+                    <option value="1" {% if rating_filter == '1' %}selected{% endif %}>1 Star</option>
+                </select>
+            </div>
+            
+            <!-- Filter Button -->
+            <button type="submit" class="btn-primary text-white px-6 py-2 rounded-lg hover:bg-gray-800 transition-colors">
+                <i class="fas fa-filter mr-2"></i>
+                Filter
+            </button>
+            
+            <!-- Clear Filters -->
+            <a href="{% url 'admin_reviews' %}" class="bg-gray-200 text-gray-800 px-6 py-2 rounded-lg hover:bg-gray-300 transition-colors">
+                Clear
+            </a>
+        </form>
+    </div>
+
+    <!-- Bulk Actions -->
+    <div id="bulkActions" class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 hidden">
+        <div class="flex items-center justify-between">
+            <div class="flex items-center space-x-4">
+                <span id="selectedCount" class="text-sm text-gray-600">0 reviews selected</span>
+                <div class="flex items-center space-x-2">
+                    <button onclick="bulkAction('approve')" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors">
+                        <i class="fas fa-check mr-2"></i>Approve
+                    </button>
+                    <button onclick="bulkAction('reject')" class="bg-yellow-600 text-white px-4 py-2 rounded-lg hover:bg-yellow-700 transition-colors">
+                        <i class="fas fa-times mr-2"></i>Reject
+                    </button>
+                    <button onclick="bulkAction('delete')" class="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors">
+                        <i class="fas fa-trash mr-2"></i>Delete
+                    </button>
+                </div>
+            </div>
+            <button onclick="clearSelection()" class="text-gray-600 hover:text-gray-800">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- Reviews List -->
+    <div class="space-y-4">
+        {% for review in reviews %}
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
+            <div class="p-6">
+                <!-- Review Header -->
+                <div class="flex items-start justify-between mb-4">
+                    <div class="flex items-start space-x-4">
+                        <input type="checkbox" class="review-checkbox mt-1" data-review-id="{{ review.id }}">
+                        <div class="flex-1">
+                            <div class="flex items-center space-x-3 mb-2">
+                                <h3 class="text-lg font-semibold text-gray-900">{{ review.title }}</h3>
+                                <div class="flex items-center">
+                                    {% for i in "12345" %}
+                                        {% if forloop.counter <= review.rating %}
+                                            <i class="fas fa-star text-yellow-400"></i>
+                                        {% else %}
+                                            <i class="fas fa-star text-gray-300"></i>
+                                        {% endif %}
+                                    {% endfor %}
+                                    <span class="ml-2 text-sm text-gray-600">({{ review.rating }}/5)</span>
+                                </div>
+                            </div>
+                            <div class="flex items-center space-x-4 text-sm text-gray-600">
+                                <span><i class="fas fa-user mr-1"></i>{{ review.customer.full_name }}</span>
+                                <span><i class="fas fa-book mr-1"></i>{{ review.book.title|truncatechars:30 }}</span>
+                                <span><i class="fas fa-calendar mr-1"></i>{{ review.created_at|date:"M d, Y" }}</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        {% if review.is_verified_purchase %}
+                        <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                            <i class="fas fa-shield-alt mr-1"></i>Verified Purchase
+                        </span>
+                        {% endif %}
+                        {% if review.is_approved %}
+                        <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                            <i class="fas fa-check-circle mr-1"></i>Approved
+                        </span>
+                        {% else %}
+                        <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                            <i class="fas fa-clock mr-1"></i>Pending
+                        </span>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Review Content -->
+                <div class="mb-4">
+                    <p class="text-gray-700 leading-relaxed">{{ review.content|truncatechars:200 }}</p>
+                    {% if review.content|length > 200 %}
+                    <button onclick="toggleFullContent('{{ review.id }}')" class="text-blue-600 hover:text-blue-800 text-sm mt-2">
+                        Read more...
+                    </button>
+                    {% endif %}
+                </div>
+
+                <!-- Full Content (Hidden by default) -->
+                <div id="fullContent-{{ review.id }}" class="hidden mb-4">
+                    <p class="text-gray-700 leading-relaxed">{{ review.content }}</p>
+                    <button onclick="toggleFullContent('{{ review.id }}')" class="text-blue-600 hover:text-blue-800 text-sm mt-2">
+                        Show less
+                    </button>
+                </div>
+
+                <!-- Review Actions -->
+                <div class="flex items-center justify-between pt-4 border-t border-gray-100">
+                    <div class="flex items-center space-x-3">
+                        {% if not review.is_approved %}
+                        <button onclick="approveReview('{{ review.id }}')" 
+                                class="text-green-600 hover:text-green-800" title="Approve Review">
+                            <i class="fas fa-check-circle mr-1"></i>Approve
+                        </button>
+                        {% else %}
+                        <button onclick="rejectReview('{{ review.id }}')" 
+                                class="text-yellow-600 hover:text-yellow-800" title="Reject Review">
+                            <i class="fas fa-times-circle mr-1"></i>Reject
+                        </button>
+                        {% endif %}
+                        <button onclick="toggleVerifiedStatus('{{ review.id }}', {{ review.is_verified_purchase|yesno:"true,false" }})" 
+                                class="{% if review.is_verified_purchase %}text-purple-600 hover:text-purple-800{% else %}text-gray-600 hover:text-gray-800{% endif %}" 
+                                title="Toggle Verified Purchase">
+                            <i class="fas fa-shield-alt mr-1"></i>
+                            {% if review.is_verified_purchase %}Unverify{% else %}Verify{% endif %}
+                        </button>
+                        <button onclick="viewReviewDetails('{{ review.id }}', '{{ review.title|addslashes }}', '{{ review.content|addslashes }}', '{{ review.customer.full_name|addslashes }}', '{{ review.book.title|addslashes }}', '{{ review.rating }}', '{{ review.created_at|date:"M d, Y H:i" }}', {{ review.is_approved|yesno:"true,false" }}, {{ review.is_verified_purchase|yesno:"true,false" }})" 
+                                class="text-blue-600 hover:text-blue-800" title="View Details">
+                            <i class="fas fa-eye mr-1"></i>View
+                        </button>
+                        <button onclick="deleteReview('{{ review.id }}', '{{ review.title|addslashes }}')" 
+                                class="text-red-600 hover:text-red-800" title="Delete Review">
+                            <i class="fas fa-trash mr-1"></i>Delete
+                        </button>
+                    </div>
+                    <div class="flex items-center space-x-4 text-sm text-gray-500">
+                        <a href="{% url 'book_detail' review.book.slug %}" target="_blank" class="text-blue-600 hover:text-blue-800">
+                            View Book <i class="fas fa-external-link-alt ml-1"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-12 text-center">
+            <i class="fas fa-star text-4xl text-gray-400 mb-4"></i>
+            <h3 class="text-lg font-medium text-gray-900 mb-2">No reviews found</h3>
+            <p class="text-gray-500">
+                {% if search_query or status_filter != 'all' or rating_filter %}
+                    No reviews match your current filters.
+                {% else %}
+                    No customer reviews have been submitted yet.
+                {% endif %}
+            </p>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- Review Details Modal -->
+<div id="reviewDetailsModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden items-center justify-center z-50">
+    <div class="bg-white rounded-lg p-6 w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
+        <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-semibold">Review Details</h3>
+            <button onclick="closeReviewDetailsModal()" class="text-gray-500 hover:text-gray-700">
+                <i class="fas fa-times text-xl"></i>
+            </button>
+        </div>
+        
+        <div class="space-y-4">
+            <div class="flex items-center space-x-4">
+                <div id="modalRating" class="flex items-center"></div>
+                <div class="flex items-center space-x-2">
+                    <span id="modalStatus" class="px-2 py-1 rounded-full text-xs font-medium"></span>
+                    <span id="modalVerified" class="px-2 py-1 rounded-full text-xs font-medium"></span>
+                </div>
+            </div>
+            
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Customer</label>
+                    <p id="modalCustomer" class="text-gray-900"></p>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Book</label>
+                    <p id="modalBook" class="text-gray-900"></p>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Date</label>
+                    <p id="modalDate" class="text-gray-900"></p>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Rating</label>
+                    <p id="modalRatingText" class="text-gray-900"></p>
+                </div>
+            </div>
+            
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Review Title</label>
+                <p id="modalTitle" class="text-gray-900 font-medium"></p>
+            </div>
+            
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Review Content</label>
+                <div id="modalContent" class="text-gray-700 leading-relaxed bg-gray-50 p-4 rounded-lg"></div>
+            </div>
+        </div>
+        
+        <div class="flex justify-end space-x-3 mt-6 pt-4 border-t border-gray-200">
+            <button onclick="closeReviewDetailsModal()" 
+                    class="bg-gray-200 text-gray-800 px-6 py-2 rounded-lg hover:bg-gray-300 transition-colors">
+                Close
+            </button>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let selectedReviews = new Set();
+
+// Toggle full content display
+function toggleFullContent(reviewId) {
+    const shortContent = document.querySelector(`[data-review-id="${reviewId}"]`).closest('.bg-white').querySelector('.mb-4 p');
+    const fullContent = document.getElementById(`fullContent-${reviewId}`);
+    
+    if (fullContent.classList.contains('hidden')) {
+        shortContent.style.display = 'none';
+        fullContent.classList.remove('hidden');
+    } else {
+        shortContent.style.display = 'block';
+        fullContent.classList.add('hidden');
+    }
+}
+
+// Review actions
+function approveReview(reviewId) {
+    reviewAction(reviewId, 'approve');
+}
+
+function rejectReview(reviewId) {
+    reviewAction(reviewId, 'reject');
+}
+
+function deleteReview(reviewId, reviewTitle) {
+    const message = `Are you sure you want to delete the review "${reviewTitle}"? This action cannot be undone.`;
+    
+    if (confirm(message)) {
+        reviewAction(reviewId, 'delete');
+    }
+}
+
+function toggleVerifiedStatus(reviewId, currentStatus) {
+    reviewAction(reviewId, 'toggle_verified');
+}
+
+function reviewAction(reviewId, action) {
+    const formData = new FormData();
+    formData.append('action', action);
+    formData.append('review_id', reviewId);
+    formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
+    
+    fetch('/dashboard/reviews/', {
+        method: 'POST',
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+        },
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            if (action === 'delete') {
+                location.reload();
+            } else {
+                location.reload();
+            }
+        } else {
+            alert('Error: ' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('An error occurred while processing the review.');
+    });
+}
+
+// Review details modal
+function viewReviewDetails(id, title, content, customer, book, rating, date, isApproved, isVerified) {
+    document.getElementById('modalTitle').textContent = title;
+    document.getElementById('modalContent').textContent = content;
+    document.getElementById('modalCustomer').textContent = customer;
+    document.getElementById('modalBook').textContent = book;
+    document.getElementById('modalDate').textContent = date;
+    document.getElementById('modalRatingText').textContent = `${rating}/5`;
+    
+    // Build star rating
+    const ratingHTML = Array.from({length: 5}, (_, i) => {
+        const starClass = i < rating ? 'fas fa-star text-yellow-400' : 'fas fa-star text-gray-300';
+        return `<i class="${starClass}"></i>`;
+    }).join('');
+    document.getElementById('modalRating').innerHTML = ratingHTML;
+    
+    // Status badge
+    const statusElement = document.getElementById('modalStatus');
+    if (isApproved) {
+        statusElement.className = 'px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800';
+        statusElement.innerHTML = '<i class="fas fa-check-circle mr-1"></i>Approved';
+    } else {
+        statusElement.className = 'px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800';
+        statusElement.innerHTML = '<i class="fas fa-clock mr-1"></i>Pending';
+    }
+    
+    // Verified badge
+    const verifiedElement = document.getElementById('modalVerified');
+    if (isVerified) {
+        verifiedElement.className = 'px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800';
+        verifiedElement.innerHTML = '<i class="fas fa-shield-alt mr-1"></i>Verified Purchase';
+        verifiedElement.style.display = 'inline-flex';
+    } else {
+        verifiedElement.style.display = 'none';
+    }
+    
+    document.getElementById('reviewDetailsModal').classList.remove('hidden');
+    document.getElementById('reviewDetailsModal').classList.add('flex');
+}
+
+function closeReviewDetailsModal() {
+    document.getElementById('reviewDetailsModal').classList.add('hidden');
+    document.getElementById('reviewDetailsModal').classList.remove('flex');
+}
+
+// Bulk selection
+document.addEventListener('DOMContentLoaded', function() {
+    const checkboxes = document.querySelectorAll('.review-checkbox');
+    const bulkActions = document.getElementById('bulkActions');
+    const selectedCount = document.getElementById('selectedCount');
+    
+    checkboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', function() {
+            const reviewId = this.dataset.reviewId;
+            
+            if (this.checked) {
+                selectedReviews.add(reviewId);
+            } else {
+                selectedReviews.delete(reviewId);
+            }
+            
+            updateBulkActions();
+        });
+    });
+    
+    function updateBulkActions() {
+        const count = selectedReviews.size;
+        
+        if (count > 0) {
+            bulkActions.classList.remove('hidden');
+            selectedCount.textContent = `${count} review${count === 1 ? '' : 's'} selected`;
+        } else {
+            bulkActions.classList.add('hidden');
+        }
+    }
+});
+
+function bulkAction(action) {
+    if (selectedReviews.size === 0) {
+        alert('Please select reviews first.');
+        return;
+    }
+    
+    let message = '';
+    switch(action) {
+        case 'approve':
+            message = `Are you sure you want to approve ${selectedReviews.size} review(s)?`;
+            break;
+        case 'reject':
+            message = `Are you sure you want to reject ${selectedReviews.size} review(s)?`;
+            break;
+        case 'delete':
+            message = `Are you sure you want to delete ${selectedReviews.size} review(s)? This action cannot be undone.`;
+            break;
+    }
+    
+    if (confirm(message)) {
+        const formData = new FormData();
+        formData.append('action', action);
+        selectedReviews.forEach(id => {
+            formData.append('review_ids[]', id);
+        });
+        formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
+        
+        fetch('/dashboard/reviews/bulk/', {
+            method: 'POST',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+            },
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Error: ' + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred while processing the reviews.');
+        });
+    }
+}
+
+function clearSelection() {
+    selectedReviews.clear();
+    document.querySelectorAll('.review-checkbox').forEach(cb => cb.checked = false);
+    document.getElementById('bulkActions').classList.add('hidden');
+}
+
+// Close modals when clicking outside
+document.getElementById('reviewDetailsModal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        closeReviewDetailsModal();
+    }
+});
+
+// Close modals with Escape key
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        closeReviewDetailsModal();
+    }
+});
+</script>
+{% endblock %}

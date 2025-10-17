@@ -1,0 +1,204 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<!-- Hero Section -->
+<section class="min-h-3/4 flex items-center relative overflow-hidden pt-20 lg:pt-30 pb-30" style="background-color: var(--bg-light-1);">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full py-92 lg:py-100">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-16 items-center">
+            <div class="order-1 lg:order-1">
+                <h1 class="text-4xl sm:text-5xl lg:text-6xl xl:text-7xl font-light leading-tight mb-8" style="color: var(--text-black);">
+                    Find your next<br>
+                    <span class="font-normal">great read</span> at our<br>
+                    online book store
+                </h1>
+                <a href="{% url 'shop' %}" class="btn-primary inline-flex items-center px-8 py-4 rounded-full font-medium text-lg">
+                    Explore Books
+                    <i class="fas fa-arrow-right ml-3"></i>
+                </a>
+            </div>
+            
+            <div class="order-2 lg:order-2 relative">
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 max-w-md lg:max-w-lg mx-auto lg:mx-0">
+                    <div class="relative group cursor-pointer transform hover:scale-105 transition-transform duration-300">
+                        <div class="relative overflow-hidden rounded-lg shadow-lg hover:shadow-2xl transition-shadow duration-300">
+                            <img src="{% static 'home/The-Psychology-of-money.jpg' %}" 
+                                 alt="The Psychology of Money" 
+                                 class="w-full h-100 object-cover">
+                        </div>
+                    </div>
+                    
+                    <div class="hidden lg:block relative overflow-hidden rounded-lg shadow-lg hover:shadow-2xl transition-shadow duration-300">
+                        <img src="{% static 'home/The-Alchemist.jpg' %}" 
+                             alt="The Alchemist" 
+                             class="w-full h-96 object-cover">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Categories Section -->
+<section class="py-16 lg:py-24" style="background-color: var(--bg-light-1);">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 lg:py-40">
+        <div class="flex flex-col lg:flex-row lg:justify-between lg:items-start gap-8">
+            <div class="flex flex-wrap gap-3 items-center">
+                <button class="hidden lg:flex items-center justify-center w-12 h-12 rounded-full border-2 hover:bg-gray-50 transition-all" style="background-color: var(--bg-white); border-color: var(--bg-medium);"></button>
+                
+                <button class="px-6 py-3 rounded-full border-2 hover:bg-gray-50 transition-all font-medium" style="background-color: var(--bg-white); color: var(--text-medium); border-color: var(--bg-medium);">
+                    Biography
+                </button>
+                
+                <button class="hidden lg:flex items-center justify-center w-12 h-12 rounded-full border-2 hover:bg-gray-50 transition-all" style="background-color: var(--bg-white); border-color: var(--bg-medium);"></button>
+                
+                <button class="px-6 py-3 rounded-full border-2 hover:bg-gray-50 transition-all font-medium" style="background-color: var(--bg-white); color: var(--text-medium); border-color: var(--bg-medium);">
+                    Novel
+                </button>
+                
+                <button class="hidden lg:flex items-center justify-center w-12 h-12 rounded-full border-2 hover:bg-gray-50 transition-all" style="background-color: var(--bg-white); border-color: var(--bg-medium);"></button>
+                
+                <button class="px-6 py-3 rounded-full border-2 hover:bg-gray-50 transition-all font-medium" style="background-color: var(--bg-white); color: var(--text-medium); border-color: var(--bg-medium);">
+                    Self Help
+                </button>
+            </div>
+            
+            <div class="hidden lg:flex items-center gap-4">
+                <button class="px-8 py-3 rounded-full border-2 hover:bg-gray-50 transition-all font-medium" style="background-color: var(--bg-white); color: var(--text-medium); border-color: var(--bg-medium);">
+                    <i class="fas fa-star mr-2"></i>Reviews
+                </button>
+                
+                <div class="flex -space-x-2">
+                    <div class="w-12 h-12 rounded-full border-2 border-white overflow-hidden" style="background-color: var(--bg-light-3);">
+                        <img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&h=150&fit=crop" alt="Reviewer" class="w-full h-full object-cover">
+                    </div>
+                    <div class="w-12 h-12 rounded-full border-2 border-white overflow-hidden" style="background-color: var(--bg-light-3);">
+                        <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop" alt="Reviewer" class="w-full h-full object-cover">
+                    </div>
+                    <div class="w-12 h-12 rounded-full border-2 border-white overflow-hidden" style="background-color: var(--bg-light-3);">
+                        <img src="https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&h=150&fit=crop" alt="Reviewer" class="w-full h-full object-cover">
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="hidden lg:block mt-8 max-w-2xl ml-auto">
+            <p class="text-lg leading-relaxed" style="color: var(--text-light);">
+                Find captivating stories, knowledge, and adventures. From classics to bestsellers, there's something for everyone.
+            </p>
+        </div>
+    </div>
+</section>
+
+<!-- Popular Books Section -->
+<section class="py-16 lg:py-24" style="background-color: var(--bg-white);">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <!-- Section Header -->
+        <div class="flex items-center justify-between mb-12">
+            <div>
+                <div class="inline-block px-6 py-2 rounded-full mb-4" style="background-color: var(--bg-light-1); color: var(--text-medium);">
+                    <span class="font-medium">Trending</span>
+                </div>
+                <h2 class="text-4xl lg:text-5xl font-light" style="color: var(--text-black);">Popular Books</h2>
+            </div>
+            
+            <a href="{% url 'shop' %}" class="hidden md:flex items-center gap-2 px-6 py-3 rounded-full font-medium transition-all" style="background-color: var(--bg-light-1); color: var(--text-black);" onmouseover="this.style.backgroundColor='var(--bg-black)'; this.style.color='var(--text-white)';" onmouseout="this.style.backgroundColor='var(--bg-light-1)'; this.style.color='var(--text-black)';">
+                Explore More Books
+                <i class="fas fa-arrow-right"></i>
+            </a>
+        </div>
+        
+        <!-- Books Grid -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8">
+            {% for book in trending_books %}
+            <div class="book-card group">
+                <a href="{% url 'book_detail' book.slug %}" class="block">
+                    <div class="relative overflow-hidden rounded-lg mb-4" style="background-color: var(--bg-light-2);">
+                        {% if book.images.exists %}
+                            <img src="{{ book.images.first.image.url }}" 
+                                 alt="{{ book.title }}" 
+                                 class="w-full h-80 object-cover">
+                        {% else %}
+                            <div class="w-full h-80 flex items-center justify-center">
+                                <i class="fas fa-book text-6xl" style="color: var(--bg-medium);"></i>
+                            </div>
+                        {% endif %}
+                        
+                        <!-- Hover Overlay -->
+                        <div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 transition-all duration-300"></div>
+                    </div>
+                </a>
+                
+                <!-- Book Info -->
+                <div class="space-y-2">
+                    <a href="{% url 'book_detail' book.slug %}" class="block">
+                        <h3 class="font-medium text-lg line-clamp-2 hover:underline" style="color: var(--text-black);">
+                            {{ book.title }}
+                        </h3>
+                    </a>
+                    
+                    <div class="flex items-center gap-2">
+                        <span class="price-current text-xl">Ksh{{ book.price }}</span>
+                        {% if book.compare_at_price %}
+                            <span class="price-original text-sm">Ksh{{ book.compare_at_price }}</span>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Add to Cart Button (appears on hover) -->
+                    <button onclick="addToCart({{ book.id }})" class="add-to-cart-btn btn-primary w-full py-3 rounded-full font-medium mt-3">
+                        <i class="fas fa-shopping-cart mr-2"></i>Add to Cart
+                    </button>
+                </div>
+            </div>
+            {% empty %}
+            <div class="col-span-full text-center py-12">
+                <p class="text-lg" style="color: var(--text-light);">No trending books available at the moment.</p>
+            </div>
+            {% endfor %}
+        </div>
+        
+        <!-- Mobile Explore Button -->
+        <div class="mt-12 text-center md:hidden">
+            <a href="{% url 'shop' %}" class="btn-primary inline-flex items-center gap-2 px-8 py-4 rounded-full font-medium">
+                Explore More Books
+                <i class="fas fa-arrow-right"></i>
+            </a>
+        </div>
+    </div>
+</section>
+
+<!-- Features Section -->
+<section class="py-16 lg:py-24" style="background-color: var(--bg-light-2);">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-8 lg:gap-12">
+            <!-- Feature 1 -->
+            <div class="text-center">
+                <div class="inline-flex items-center justify-center w-16 h-16 rounded-full mb-4" style="background-color: var(--accent-gold);">
+                    <i class="fas fa-shipping-fast text-2xl" style="color: var(--text-white);"></i>
+                </div>
+                <h3 class="text-xl font-semibold mb-2" style="color: var(--text-black);">Fast Delivery</h3>
+                <p style="color: var(--text-light);">Get your books delivered quickly to your doorstep</p>
+            </div>
+            
+            <!-- Feature 2 -->
+            <div class="text-center">
+                <div class="inline-flex items-center justify-center w-16 h-16 rounded-full mb-4" style="background-color: var(--accent-purple);">
+                    <i class="fas fa-shield-alt text-2xl" style="color: var(--text-white);"></i>
+                </div>
+                <h3 class="text-xl font-semibold mb-2" style="color: var(--text-black);">Secure Payment</h3>
+                <p style="color: var(--text-light);">Your transactions are safe and secure with us</p>
+            </div>
+            
+            <!-- Feature 3 -->
+            <div class="text-center">
+                <div class="inline-flex items-center justify-center w-16 h-16 rounded-full mb-4" style="background-color: var(--accent-rose);">
+                    <i class="fas fa-undo text-2xl" style="color: var(--text-white);"></i>
+                </div>
+                <h3 class="text-xl font-semibold mb-2" style="color: var(--text-black);">Easy Returns</h3>
+                <p style="color: var(--text-light);">Not satisfied? Return within 30 days for a full refund</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+{% endblock content %}

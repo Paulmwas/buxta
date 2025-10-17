@@ -1,0 +1,54 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Order Confirmation - Bookstore{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8 max-w-4xl">
+    <div class="bg-white rounded-lg shadow-md p-8 text-center">
+        <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+            </svg>
+        </div>
+        
+        <h1 class="text-3xl font-bold text-gray-900 mb-4">Order Placed Successfully!</h1>
+        <p class="text-lg text-gray-600 mb-6">
+            Thank you for your order. We've redirected you to WhatsApp to complete your purchase.
+        </p>
+        
+        <div class="bg-gray-50 rounded-lg p-6 mb-6 text-left">
+            <h2 class="text-xl font-semibold mb-4">Order Details</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <p><strong>Order Number:</strong> {{ order.order_number }}</p>
+                    <p><strong>Order Date:</strong> {{ order.created_at|date:"F j, Y" }}</p>
+                    <p><strong>Total Amount:</strong> KSh {{ order.total_amount }}</p>
+                </div>
+                <div>
+                    <p><strong>Customer:</strong> {{ order.billing_first_name }} {{ order.billing_last_name }}</p>
+                    <p><strong>Phone:</strong> {{ order.billing_phone }}</p>
+                    <p><strong>Email:</strong> {{ order.billing_email }}</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="space-y-4">
+            <p class="text-gray-600">
+                If you weren't redirected to WhatsApp automatically, please click the button below:
+            </p>
+            
+            <div class="space-x-4">
+                <a href="{% url 'home' %}" 
+                   class="inline-flex items-center px-6 py-3 border border-gray-300 text-base font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                    Continue Shopping
+                </a>
+                <a href="{% url 'shop' %}" 
+                   class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700">
+                    Browse More Books
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

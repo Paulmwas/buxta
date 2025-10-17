@@ -1,0 +1,432 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ book.title }} - Buxta{% endblock %}
+
+{% block content %}
+<!-- Book Detail Section -->
+<section class="py-12" style="background-color: var(--bg-white);">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <!-- Breadcrumb -->
+        <nav class="mb-8">
+            <ol class="flex items-center gap-2 text-sm">
+                <li><a href="{% url 'home' %}" class="hover:underline" style="color: var(--text-light);">Home</a></li>
+                <li style="color: var(--text-light);">/</li>
+                <li><a href="{% url 'shop' %}" class="hover:underline" style="color: var(--text-light);">Shop</a></li>
+                <li style="color: var(--text-light);">/</li>
+                <li style="color: var(--text-black);">{{ book.title|truncatewords:5 }}</li>
+            </ol>
+        </nav>
+        
+        <!-- Product Grid -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 mb-16">
+            <!-- Left: Image Gallery -->
+            <div>
+                <div class="sticky top-24">
+                    <!-- Main Image -->
+                    <div class="mb-4 rounded-lg overflow-hidden" style="background-color: var(--bg-light-2);">
+                        {% if book.images.exists %}
+                            <img id="mainImage" src="{{ book.images.first.image.url }}" 
+                                 alt="{{ book.title }}" 
+                                 class="w-full h-auto object-contain max-h-96 lg:max-h-screen">
+                        {% else %}
+                            <div class="w-full h-96 flex items-center justify-center">
+                                <i class="fas fa-book text-8xl" style="color: var(--bg-medium);"></i>
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Thumbnail Images -->
+                    {% if book.images.count > 1 %}
+                    <div class="grid grid-cols-4 gap-3">
+                        {% for image in book.images.all %}
+                        <button onclick="changeImage('{{ image.image.url }}')" 
+                                class="rounded-lg overflow-hidden border-2 hover:border-black transition-colors" 
+                                style="border-color: {% if forloop.first %}var(--bg-black){% else %}var(--bg-light-3){% endif %};">
+                            <img src="{{ image.image.url }}" 
+                                 alt="{{ image.alt_text }}" 
+                                 class="w-full h-24 object-cover">
+                        </button>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- Right: Product Info -->
+            <div>
+                <!-- Title and Author -->
+                <h1 class="text-3xl lg:text-4xl font-light mb-2" style="color: var(--text-black);">{{ book.title }}</h1>
+                
+                {% if book.subtitle %}
+                <p class="text-lg mb-4" style="color: var(--text-light);">{{ book.subtitle }}</p>
+                {% endif %}
+                
+                {% if book.authors.exists %}
+                <p class="text-lg mb-6" style="color: var(--text-medium);">
+                    by <span class="font-medium">{% for author in book.authors.all %}{{ author.full_name }}{% if not forloop.last %}, {% endif %}{% endfor %}</span>
+                </p>
+                {% endif %}
+                
+                <!-- Rating -->
+                {% if book.average_rating > 0 %}
+                <div class="flex items-center gap-3 mb-6">
+                    <div class="flex items-center gap-1">
+                        {% for i in "12345" %}
+                            {% if forloop.counter <= book.average_rating %}
+                                <i class="fas fa-star" style="color: var(--accent-gold);"></i>
+                            {% else %}
+                                <i class="far fa-star" style="color: var(--accent-gold);"></i>
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+                    <span style="color: var(--text-medium);">{{ book.average_rating|floatformat:1 }} ({{ book.review_count }} reviews)</span>
+                </div>
+                {% endif %}
+                
+                <!-- Price -->
+                <div class="flex items-baseline gap-4 mb-8 pb-8 border-b" style="border-color: var(--bg-light-3);">
+                    <span class="text-4xl font-semibold" style="color: var(--text-black);">Ksh{{ book.price }}</span>
+                    {% if book.compare_at_price %}
+                        <span class="text-2xl price-original">Ksh{{ book.compare_at_price }}</span>
+                        <span class="px-3 py-1 rounded-full text-sm font-semibold" style="background-color: var(--accent-gold); color: var(--text-white);">
+                            Save {{ book.discount_percentage }}%
+                        </span>
+                    {% endif %}
+                </div>
+                
+                <!-- Stock Status -->
+                <div class="mb-6">
+                    {% if book.is_in_stock %}
+                        <div class="flex items-center gap-2 mb-2">
+                            <i class="fas fa-check-circle" style="color: #10b981;"></i>
+                            <span class="font-medium" style="color: #10b981;">In Stock</span>
+                        </div>
+                        {% if book.is_low_stock %}
+                        <p class="text-sm" style="color: var(--accent-rose);">Only {{ book.stock_quantity }} left!</p>
+                        {% endif %}
+                    {% else %}
+                        <div class="flex items-center gap-2">
+                            <i class="fas fa-times-circle" style="color: #ef4444;"></i>
+                            <span class="font-medium" style="color: #ef4444;">Out of Stock</span>
+                        </div>
+                    {% endif %}
+                </div>
+                
+                <!-- Add to Cart -->
+                <div class="mb-8">
+                    {% if book.is_in_stock %}
+                    <div class="flex gap-4">
+                        <div class="flex items-center border-2 rounded-full overflow-hidden" style="border-color: var(--bg-medium);">
+                            <button onclick="decrementQty()" class="px-4 py-3 hover:bg-gray-100">
+                                <i class="fas fa-minus"></i>
+                            </button>
+                            <input type="number" id="quantity" value="1" min="1" max="{{ book.stock_quantity }}" 
+                                   class="w-16 text-center border-x-2 py-3 focus:outline-none" 
+                                   style="border-color: var(--bg-medium);">
+                            <button onclick="incrementQty()" class="px-4 py-3 hover:bg-gray-100">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                        </div>
+                        
+                        <button onclick="addToCartWithQty()" class="btn-primary flex-1 py-3 rounded-full font-medium text-lg">
+                            <i class="fas fa-shopping-cart mr-2"></i>Add to Cart
+                        </button>
+                    </div>
+                    {% else %}
+                    <button disabled class="w-full py-4 rounded-full font-medium text-lg cursor-not-allowed opacity-50" style="background-color: var(--bg-medium); color: var(--text-white);">
+                        Out of Stock
+                    </button>
+                    {% endif %}
+                </div>
+                
+                <!-- Product Details -->
+                <div class="space-y-4 mb-8 pb-8 border-b" style="border-color: var(--bg-light-3);">
+                    {% if book.isbn_13 %}
+                    <div class="flex justify-between">
+                        <span style="color: var(--text-light);">ISBN-13:</span>
+                        <span style="color: var(--text-black);">{{ book.isbn_13 }}</span>
+                    </div>
+                    {% endif %}
+                    
+                    {% if book.publisher %}
+                    <div class="flex justify-between">
+                        <span style="color: var(--text-light);">Publisher:</span>
+                        <span style="color: var(--text-black);">{{ book.publisher.name }}</span>
+                    </div>
+                    {% endif %}
+                    
+                    {% if book.publication_date %}
+                    <div class="flex justify-between">
+                        <span style="color: var(--text-light);">Published:</span>
+                        <span style="color: var(--text-black);">{{ book.publication_date|date:"M d, Y" }}</span>
+                    </div>
+                    {% endif %}
+                    
+                    {% if book.pages %}
+                    <div class="flex justify-between">
+                        <span style="color: var(--text-light);">Pages:</span>
+                        <span style="color: var(--text-black);">{{ book.pages }}</span>
+                    </div>
+                    {% endif %}
+                    
+                    <div class="flex justify-between">
+                        <span style="color: var(--text-light);">Format:</span>
+                        <span style="color: var(--text-black);">{{ book.get_format_display }}</span>
+                    </div>
+                    
+                    <div class="flex justify-between">
+                        <span style="color: var(--text-light);">Language:</span>
+                        <span style="color: var(--text-black);">{{ book.language }}</span>
+                    </div>
+                    
+                    {% if book.dimensions %}
+                    <div class="flex justify-between">
+                        <span style="color: var(--text-light);">Dimensions:</span>
+                        <span style="color: var(--text-black);">{{ book.dimensions }}</span>
+                    </div>
+                    {% endif %}
+                </div>
+                
+                <!-- Categories -->
+                {% if book.categories.exists %}
+                <div class="mb-8">
+                    <h3 class="text-sm font-semibold mb-3" style="color: var(--text-light);">CATEGORIES</h3>
+                    <div class="flex flex-wrap gap-2">
+                        {% for category in book.categories.all %}
+                        <a href="{% url 'shop' %}?category={{ category.slug }}" 
+                           class="px-4 py-2 rounded-full text-sm font-medium hover:bg-black hover:text-white transition-colors" 
+                           style="background-color: var(--bg-light-1); color: var(--text-black);">
+                            {{ category.name }}
+                        </a>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+                
+                <!-- Share -->
+                <div>
+                    <h3 class="text-sm font-semibold mb-3" style="color: var(--text-light);">SHARE</h3>
+                    <div class="flex gap-3">
+                        <button class="w-10 h-10 rounded-full flex items-center justify-center hover:bg-black hover:text-white transition-colors" style="background-color: var(--bg-light-1);">
+                            <i class="fab fa-facebook-f"></i>
+                        </button>
+                        <button class="w-10 h-10 rounded-full flex items-center justify-center hover:bg-black hover:text-white transition-colors" style="background-color: var(--bg-light-1);">
+                            <i class="fab fa-twitter"></i>
+                        </button>
+                        <button class="w-10 h-10 rounded-full flex items-center justify-center hover:bg-black hover:text-white transition-colors" style="background-color: var(--bg-light-1);">
+                            <i class="fab fa-pinterest"></i>
+                        </button>
+                        <button class="w-10 h-10 rounded-full flex items-center justify-center hover:bg-black hover:text-white transition-colors" style="background-color: var(--bg-light-1);">
+                            <i class="fas fa-envelope"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Tabs Section -->
+        <div class="mb-16">
+            <div class="border-b mb-8" style="border-color: var(--bg-light-3);">
+                <div class="flex gap-8">
+                    <button onclick="switchTab('description')" id="tab-description" class="pb-4 px-2 font-medium border-b-2 transition-colors" style="border-color: var(--bg-black); color: var(--text-black);">
+                        Description
+                    </button>
+                    {% if book.excerpt %}
+                    <button onclick="switchTab('excerpt')" id="tab-excerpt" class="pb-4 px-2 font-medium border-b-2 border-transparent transition-colors" style="color: var(--text-light);">
+                        Excerpt
+                    </button>
+                    {% endif %}
+                    <button onclick="switchTab('reviews')" id="tab-reviews" class="pb-4 px-2 font-medium border-b-2 border-transparent transition-colors" style="color: var(--text-light);">
+                        Reviews ({{ book.review_count }})
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Tab Content -->
+            <div id="content-description" class="tab-content">
+                <div class="prose max-w-none">
+                    <p class="text-lg leading-relaxed" style="color: var(--text-medium);">
+                        {{ book.description }}
+                    </p>
+                </div>
+            </div>
+            
+            {% if book.excerpt %}
+            <div id="content-excerpt" class="tab-content hidden">
+                <div class="prose max-w-none">
+                    <p class="text-lg leading-relaxed italic" style="color: var(--text-medium);">
+                        {{ book.excerpt }}
+                    </p>
+                </div>
+            </div>
+            {% endif %}
+            
+            <div id="content-reviews" class="tab-content hidden">
+                {% if book.reviews.exists %}
+                    <div class="space-y-6">
+                        {% for review in book.reviews.all %}
+                        {% if review.is_approved %}
+                        <div class="pb-6 border-b" style="border-color: var(--bg-light-3);">
+                            <div class="flex items-start justify-between mb-3">
+                                <div>
+                                    <h4 class="font-semibold mb-1" style="color: var(--text-black);">{{ review.customer.full_name }}</h4>
+                                    <div class="flex items-center gap-1">
+                                        {% for i in "12345" %}
+                                            {% if forloop.counter <= review.rating %}
+                                                <i class="fas fa-star text-sm" style="color: var(--accent-gold);"></i>
+                                            {% else %}
+                                                <i class="far fa-star text-sm" style="color: var(--accent-gold);"></i>
+                                            {% endif %}
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                                <span class="text-sm" style="color: var(--text-light);">{{ review.created_at|date:"M d, Y" }}</span>
+                            </div>
+                            <h5 class="font-medium mb-2" style="color: var(--text-black);">{{ review.title }}</h5>
+                            <p style="color: var(--text-medium);">{{ review.content }}</p>
+                            {% if review.is_verified_purchase %}
+                            <span class="inline-block mt-3 text-xs px-3 py-1 rounded-full" style="background-color: var(--bg-light-1); color: var(--text-medium);">
+                                <i class="fas fa-check-circle mr-1"></i>Verified Purchase
+                            </span>
+                            {% endif %}
+                        </div>
+                        {% endif %}
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="text-center py-12">
+                        <i class="fas fa-star text-6xl mb-4" style="color: var(--bg-medium);"></i>
+                        <p class="text-lg" style="color: var(--text-light);">No reviews yet. Be the first to review!</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Related Books -->
+        {% if related_books %}
+        <div>
+            <h2 class="text-3xl font-light mb-8" style="color: var(--text-black);">You May Also Like</h2>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                {% for related in related_books %}
+                <div class="book-card group">
+                    <a href="{% url 'book_detail' related.slug %}" class="block">
+                        <div class="relative overflow-hidden rounded-lg mb-4" style="background-color: var(--bg-light-2);">
+                            {% if related.images.exists %}
+                                <img src="{{ related.images.first.image.url }}" 
+                                     alt="{{ related.title }}" 
+                                     class="w-full h-80 object-cover">
+                            {% else %}
+                                <div class="w-full h-80 flex items-center justify-center">
+                                    <i class="fas fa-book text-6xl" style="color: var(--bg-medium);"></i>
+                                </div>
+                            {% endif %}
+                            <div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 transition-all duration-300"></div>
+                        </div>
+                    </a>
+                    
+                    <div class="space-y-2">
+                        <a href="{% url 'book_detail' related.slug %}" class="block">
+                            <h3 class="font-medium text-lg line-clamp-2 hover:underline" style="color: var(--text-black);">
+                                {{ related.title }}
+                            </h3>
+                        </a>
+                        
+                        <div class="flex items-center gap-2">
+                            <span class="price-current text-xl">Ksh{{ related.price }}</span>
+                            {% if related.compare_at_price %}
+                                <span class="price-original text-sm">Ksh{{ related.compare_at_price }}</span>
+                            {% endif %}
+                        </div>
+                        
+                        {% if related.is_in_stock %}
+                        <button onclick="addToCart({{ related.id }})" class="add-to-cart-btn btn-primary w-full py-3 rounded-full font-medium mt-3">
+                            <i class="fas fa-shopping-cart mr-2"></i>Add to Cart
+                        </button>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</section>
+
+<script>
+    // Image Gallery
+    function changeImage(imageUrl) {
+        document.getElementById('mainImage').src = imageUrl;
+        
+        // Update active thumbnail
+        const thumbnails = document.querySelectorAll('.grid button');
+        thumbnails.forEach(btn => {
+            btn.style.borderColor = 'var(--bg-light-3)';
+        });
+        event.currentTarget.style.borderColor = 'var(--bg-black)';
+    }
+    
+    // Quantity Controls
+    function incrementQty() {
+        const input = document.getElementById('quantity');
+        const max = parseInt(input.max);
+        const current = parseInt(input.value);
+        if (current < max) {
+            input.value = current + 1;
+        }
+    }
+    
+    function decrementQty() {
+        const input = document.getElementById('quantity');
+        const current = parseInt(input.value);
+        if (current > 1) {
+            input.value = current - 1;
+        }
+    }
+    
+    // Add to Cart with Quantity
+    function addToCartWithQty() {
+        const quantity = parseInt(document.getElementById('quantity').value);
+        const bookId = {{ book.id }};
+        
+        // Add to cart multiple times based on quantity
+        for (let i = 0; i < quantity; i++) {
+            if (i === quantity - 1) {
+                // Show notification only on last addition
+                addToCart(bookId);
+            } else {
+                // Silent additions
+                fetch(`/cart/add/${bookId}/`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': getCookie('csrftoken')
+                    }
+                });
+            }
+        }
+    }
+    
+    // Tab Switching
+    function switchTab(tabName) {
+        // Hide all content
+        document.querySelectorAll('.tab-content').forEach(content => {
+            content.classList.add('hidden');
+        });
+        
+        // Reset all tabs
+        document.querySelectorAll('[id^="tab-"]').forEach(tab => {
+            tab.style.borderColor = 'transparent';
+            tab.style.color = 'var(--text-light)';
+        });
+        
+        // Show selected content
+        document.getElementById(`content-${tabName}`).classList.remove('hidden');
+        
+        // Highlight selected tab
+        const selectedTab = document.getElementById(`tab-${tabName}`);
+        selectedTab.style.borderColor = 'var(--bg-black)';
+        selectedTab.style.color = 'var(--text-black)';
+    }
+</script>
+
+{% endblock content %}

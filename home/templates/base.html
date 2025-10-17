@@ -1,0 +1,439 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}Home - Buxta{% endblock title %}</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --bg-white: #ffffff;
+            --bg-light-1: #f2f3f0;
+            --bg-light-2: #f8efe5;
+            --bg-light-3: #e5e6e1;
+            --bg-medium: #c1c3b7;
+            --accent-gold: #e4b976;
+            --accent-purple: #bbb2cf;
+            --accent-rose: #ca9da2;
+            --bg-black: #000000;
+            --text-white: #ffffff;
+            --text-light: #999999;
+            --text-medium: #333333;
+            --text-black: #000000;
+        }
+        
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            font-weight: 400;
+        }
+        
+        .btn-primary {
+            background-color: var(--bg-black);
+            color: var(--text-white);
+            transition: all 0.3s ease;
+        }
+        
+        .btn-primary:hover {
+            background-color: var(--text-white);
+            color: var(--text-black);
+            box-shadow: inset 0 0 0 2px var(--bg-black);
+        }
+        
+        /* Cart Sidebar */
+        .cart-sidebar {
+            position: fixed;
+            top: 0;
+            right: -100%;
+            width: 100%;
+            max-width: 420px;
+            height: 100vh;
+            background: var(--bg-white);
+            box-shadow: -4px 0 24px rgba(0, 0, 0, 0.15);
+            transition: right 0.3s ease;
+            z-index: 1000;
+        }
+        
+        .cart-sidebar.active {
+            right: 0;
+        }
+        
+        .cart-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.5);
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+            z-index: 999;
+        }
+        
+        .cart-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+        
+        /* Book Card Hover */
+        .book-card {
+            position: relative;
+            overflow: hidden;
+            transition: transform 0.3s ease;
+        }
+        
+        .book-card:hover {
+            transform: translateY(-4px);
+        }
+        
+        .book-card .add-to-cart-btn {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.3s ease;
+        }
+        
+        .book-card:hover .add-to-cart-btn {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        
+        /* Price styling */
+        .price-original {
+            color: var(--text-light);
+            text-decoration: line-through;
+        }
+        
+        .price-current {
+            color: var(--text-black);
+            font-weight: 600;
+        }
+    </style>
+    
+    {% block extra_head %}{% endblock extra_head %}
+</head>
+<body style="background-color: var(--bg-light-1);">
+    <!-- Cart Overlay -->
+    <div class="cart-overlay" id="cartOverlay" onclick="toggleCart()"></div>
+    
+    <!-- Cart Sidebar -->
+    <div class="cart-sidebar" id="cartSidebar">
+        <div class="flex flex-col h-full">
+            <!-- Header -->
+            <div class="flex items-center justify-between p-6 border-b" style="border-color: var(--bg-light-3);">
+                <h2 class="text-xl font-semibold" style="color: var(--text-black);">Shopping Cart</h2>
+                <button onclick="toggleCart()" class="p-2 hover:bg-gray-100 rounded-full">
+                    <i class="fas fa-times text-lg"></i>
+                </button>
+            </div>
+            
+            <!-- Cart Items -->
+            <div class="flex-1 overflow-y-auto p-6" id="cartItemsContainer">
+                <!-- Items will be loaded here -->
+            </div>
+            
+            <!-- Footer -->
+            <div class="border-t p-6" style="border-color: var(--bg-light-3);">
+                <div class="flex justify-between items-center mb-4">
+                    <span class="text-lg" style="color: var(--text-medium);">Subtotal:</span>
+                    <span class="text-2xl font-semibold" style="color: var(--text-black);" id="cartSubtotal">Ksh0.00</span>
+                </div>
+                <a href="{% url 'checkout' %}" class="btn-primary w-full py-4 rounded-full text-center block font-medium mb-3">
+                    Proceed to Checkout
+                </a>
+                <button onclick="toggleCart()" class="w-full py-3 rounded-full text-center border-2 font-medium" style="border-color: var(--bg-black); color: var(--text-black); background-color: transparent;">
+                    Continue Shopping
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Navigation -->
+    <nav style="background-color: var(--bg-white);" class="border-b sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <!-- Logo -->
+                <div class="flex-shrink-0">
+                    <a href="{% url 'home' %}" class="text-2xl font-bold" style="color: var(--text-black); letter-spacing: -0.05em;">
+                        BUXTA
+                    </a>
+                </div>
+                
+                <!-- Desktop Navigation -->
+                <div class="hidden md:block">
+                    <div class="ml-10 flex items-baseline space-x-8">
+                        <a href="{% url 'home' %}" class="px-3 py-2 text-sm font-medium hover:text-black transition-colors" style="color: var(--text-medium);">Home</a>
+                        <a href="{% url 'shop' %}" class="px-3 py-2 text-sm font-medium hover:text-black transition-colors" style="color: var(--text-medium);">Shop</a>
+                        <a href="#" class="px-3 py-2 text-sm font-medium hover:text-black transition-colors" style="color: var(--text-medium);">About</a>
+                        <a href="#" class="px-3 py-2 text-sm font-medium hover:text-black transition-colors" style="color: var(--text-medium);">Blog</a>
+                        <a href="#" class="px-3 py-2 text-sm font-medium hover:text-black transition-colors" style="color: var(--text-medium);">Contact</a>
+                    </div>
+                </div>
+                
+                <!-- Desktop Search and Cart -->
+                <div class="hidden md:flex items-center space-x-4">
+                    <div class="relative">
+                        <form action="{% url 'shop' %}" method="get" class="flex">
+                            <input type="text" name="search" placeholder="Search books..." 
+                                   class="border rounded-full py-2 pl-4 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-black" 
+                                   style="background-color: var(--bg-light-1); border-color: var(--bg-medium);">
+                            <button type="submit" class="absolute right-3 top-1/2 transform -translate-y-1/2">
+                                <i class="fas fa-search text-sm" style="color: var(--text-light);"></i>
+                            </button>
+                        </form>
+                    </div>
+                    
+                    <button onclick="toggleCart()" class="relative p-2 hover:bg-gray-100 rounded-full transition-colors">
+                        <i class="fas fa-shopping-cart text-lg" style="color: var(--text-black);"></i>
+                        <span id="cartCount" class="absolute -top-1 -right-1 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center" style="background-color: var(--bg-black);">0</span>
+                    </button>
+                </div>
+                
+                <!-- Mobile menu button -->
+                <div class="md:hidden flex items-center space-x-4">
+                    <button onclick="toggleCart()" class="relative p-2">
+                        <i class="fas fa-shopping-cart text-lg"></i>
+                        <span id="cartCountMobile" class="absolute -top-1 -right-1 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center" style="background-color: var(--bg-black);">0</span>
+                    </button>
+                    <button type="button" onclick="toggleMobileMenu()" style="color: var(--text-black);">
+                        <i class="fas fa-bars text-lg"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Mobile menu -->
+        <div id="mobile-menu" class="hidden md:hidden border-t" style="background-color: var(--bg-white); border-color: var(--bg-light-3);">
+            <div class="px-2 pt-2 pb-3 space-y-1">
+                <a href="{% url 'home' %}" class="block px-3 py-2 rounded-md text-sm font-medium hover:bg-gray-100">Home</a>
+                <a href="{% url 'shop' %}" class="block px-3 py-2 rounded-md text-sm font-medium hover:bg-gray-100">Shop</a>
+                <a href="#" class="block px-3 py-2 rounded-md text-sm font-medium hover:bg-gray-100">About</a>
+                <a href="#" class="block px-3 py-2 rounded-md text-sm font-medium hover:bg-gray-100">Blog</a>
+                <a href="#" class="block px-3 py-2 rounded-md text-sm font-medium hover:bg-gray-100">Contact</a>
+            </div>
+        </div>
+    </nav>
+
+    <main>
+        {% block content %}{% endblock content %}
+    </main>
+
+    <!-- Footer -->
+    <footer style="background: linear-gradient(135deg, #020617 0%, #0f172a 100%);" class="text-white">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+                <div class="lg:col-span-1">
+                    <div class="text-2xl font-bold mb-4">BUXTA</div>
+                    <p style="color: var(--text-light);" class="mb-6 leading-relaxed">
+                        Your gateway to empowering literature and transformative reading experiences.
+                    </p>
+                </div>
+                
+                <div>
+                    <h3 class="text-lg font-semibold mb-4">Explore</h3>
+                    <ul class="space-y-3">
+                        <li><a href="{% url 'home' %}" style="color: var(--text-light);" class="hover:text-white transition-colors">Home</a></li>
+                        <li><a href="{% url 'shop' %}" style="color: var(--text-light);" class="hover:text-white transition-colors">Shop</a></li>
+                        <li><a href="#" style="color: var(--text-light);" class="hover:text-white transition-colors">About</a></li>
+                    </ul>
+                </div>
+                
+                <div>
+                    <h3 class="text-lg font-semibold mb-4">Resources</h3>
+                    <ul class="space-y-3">
+                        <li><a href="#" style="color: var(--text-light);" class="hover:text-white transition-colors">Blog</a></li>
+                        <li><a href="#" style="color: var(--text-light);" class="hover:text-white transition-colors">Contact</a></li>
+                    </ul>
+                </div>
+                
+                <div>
+                    <h3 class="text-lg font-semibold mb-4">Legal</h3>
+                    <ul class="space-y-3">
+                        <li><a href="#" style="color: var(--text-light);" class="hover:text-white transition-colors">Privacy Policy</a></li>
+                        <li><a href="#" style="color: var(--text-light);" class="hover:text-white transition-colors">Terms of Service</a></li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="border-t border-slate-800 mt-12 pt-8 text-center">
+                <p style="color: var(--text-light);" class="text-sm">&copy; 2024 Buxta. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Mobile Menu Toggle
+        function toggleMobileMenu() {
+            const mobileMenu = document.getElementById('mobile-menu');
+            mobileMenu.classList.toggle('hidden');
+        }
+        
+        // Cart Toggle
+        function toggleCart() {
+            const sidebar = document.getElementById('cartSidebar');
+            const overlay = document.getElementById('cartOverlay');
+            sidebar.classList.toggle('active');
+            overlay.classList.toggle('active');
+            
+            if (sidebar.classList.contains('active')) {
+                loadCartData();
+            }
+        }
+        
+        // Load Cart Data
+        function loadCartData() {
+            fetch('{% url "cart_data" %}')
+                .then(response => response.json())
+                .then(data => {
+                    updateCartUI(data);
+                })
+                .catch(error => console.error('Error loading cart:', error));
+        }
+        
+        // Update Cart UI
+        function updateCartUI(data) {
+            const container = document.getElementById('cartItemsContainer');
+            const subtotal = document.getElementById('cartSubtotal');
+            const cartCount = document.getElementById('cartCount');
+            const cartCountMobile = document.getElementById('cartCountMobile');
+            
+            cartCount.textContent = data.total_items;
+            cartCountMobile.textContent = data.total_items;
+            subtotal.textContent = `Ksh${data.subtotal}`;
+            
+            if (data.is_empty) {
+                container.innerHTML = `
+                    <div class="text-center py-12">
+                        <i class="fas fa-shopping-cart text-6xl mb-4" style="color: var(--bg-medium);"></i>
+                        <p class="text-lg" style="color: var(--text-light);">Your cart is empty</p>
+                    </div>
+                `;
+            } else {
+                container.innerHTML = data.items.map(item => `
+                    <div class="flex gap-4 mb-6 pb-6 border-b" style="border-color: var(--bg-light-3);">
+                        <img src="${item.book_image}" alt="${item.book_title}" class="w-20 h-28 object-cover rounded">
+                        <div class="flex-1">
+                            <h3 class="font-medium mb-2" style="color: var(--text-black);">${item.book_title}</h3>
+                            <p class="text-sm mb-2" style="color: var(--text-light);">$${item.price}</p>
+                            <div class="flex items-center gap-2">
+                                <button onclick="updateQuantity(${item.id}, ${item.quantity - 1})" class="w-7 h-7 rounded border flex items-center justify-center hover:bg-gray-100">
+                                    <i class="fas fa-minus text-xs"></i>
+                                </button>
+                                <span class="w-8 text-center">${item.quantity}</span>
+                                <button onclick="updateQuantity(${item.id}, ${item.quantity + 1})" class="w-7 h-7 rounded border flex items-center justify-center hover:bg-gray-100">
+                                    <i class="fas fa-plus text-xs"></i>
+                                </button>
+                                <button onclick="removeItem(${item.id})" class="ml-auto text-red-500 hover:text-red-700">
+                                    <i class="fas fa-trash text-sm"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+            }
+        }
+        
+        // Update Quantity
+        function updateQuantity(itemId, quantity) {
+            fetch(`/cart/update/${itemId}/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify({ quantity: quantity })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    loadCartData();
+                } else {
+                    alert(data.message);
+                }
+            });
+        }
+        
+        // Remove Item
+        function removeItem(itemId) {
+            if (!confirm('Remove this item from cart?')) return;
+            
+            fetch(`/cart/remove/${itemId}/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken')
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    loadCartData();
+                }
+            });
+        }
+        
+        // Add to Cart
+        function addToCart(bookId) {
+            fetch(`/cart/add/${bookId}/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken')
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    document.getElementById('cartCount').textContent = data.cart_count;
+                    document.getElementById('cartCountMobile').textContent = data.cart_count;
+                    showNotification(data.message);
+                } else {
+                    alert(data.message);
+                }
+            });
+        }
+        
+        // Show Notification
+        function showNotification(message) {
+            const notification = document.createElement('div');
+            notification.className = 'fixed top-20 right-4 px-6 py-3 rounded-lg shadow-lg z-50';
+            notification.style.backgroundColor = 'var(--bg-black)';
+            notification.style.color = 'var(--text-white)';
+            notification.textContent = message;
+            document.body.appendChild(notification);
+            
+            setTimeout(() => notification.remove(), 3000);
+        }
+        
+        // Get CSRF Token
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+        
+        // Load cart count on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            fetch('{% url "cart_data" %}')
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('cartCount').textContent = data.total_items;
+                    document.getElementById('cartCountMobile').textContent = data.total_items;
+                });
+        });
+    </script>
+    
+    {% block extra_js %}{% endblock extra_js %}
+</body>
+</html>
