@@ -39,7 +39,7 @@ buxta/
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/yourusername/buxta.git
+git clone https://github.com/Paulmwas/buxta.git
 cd buxta
 ```
 
